@@ -1,44 +1,61 @@
 // Locale switcher refs:
 // - Paraglide docs: https://inlang.com/m/gerre34r/library-inlang-paraglideJs
 // - Router example: https://github.com/TanStack/router/tree/main/examples/react/i18n-paraglide#switching-locale
-import { getLocale, locales, setLocale } from "#/paraglide/runtime";
-import { m } from "#/paraglide/messages";
+import { Check, Globe } from "lucide-react";
 
-export default function ParaglideLocaleSwitcher() {
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "#/components/ui/dropdown-menu";
+import { cn } from "#/lib/utils";
+import { m } from "#/paraglide/messages";
+import { getLocale, locales, setLocale } from "#/paraglide/runtime";
+
+const LOCALE_NAMES: Record<(typeof locales)[number], string> = {
+  en: "English",
+  es: "Español",
+};
+
+export default function LocaleSwitcher({
+  tone = "dark",
+  className,
+}: {
+  tone?: "dark" | "light";
+  className?: string;
+}) {
   const currentLocale = getLocale();
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: "0.5rem",
-        alignItems: "center",
-        color: "inherit",
-      }}
-      aria-label={m.language_label()}
-    >
-      <span style={{ opacity: 0.85 }}>{m.current_locale({ locale: currentLocale })}</span>
-      <div style={{ display: "flex", gap: "0.25rem" }}>
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={m.language_label()}
+        className={cn(
+          "inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium tracking-wide uppercase transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+          tone === "light"
+            ? "text-white/80 hover:bg-white/10 hover:text-white"
+            : "text-muted-foreground hover:bg-black/5 hover:text-foreground",
+          className,
+        )}
+      >
+        <Globe className="size-3.5" strokeWidth={1.8} />
+        {currentLocale}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-36 rounded-xl">
         {locales.map((locale) => (
-          <button
+          <DropdownMenuItem
             key={locale}
-            onClick={() => setLocale(locale)}
-            aria-pressed={locale === currentLocale}
-            style={{
-              cursor: "pointer",
-              padding: "0.35rem 0.75rem",
-              borderRadius: "999px",
-              border: "1px solid #d1d5db",
-              background: locale === currentLocale ? "#0f172a" : "transparent",
-              color: locale === currentLocale ? "#f8fafc" : "inherit",
-              fontWeight: locale === currentLocale ? 700 : 500,
-              letterSpacing: "0.01em",
+            onSelect={() => {
+              if (locale !== currentLocale) void setLocale(locale);
             }}
+            className="justify-between rounded-lg"
           >
-            {locale.toUpperCase()}
-          </button>
+            <span>{LOCALE_NAMES[locale]}</span>
+            {locale === currentLocale ? <Check className="size-3.5" /> : null}
+          </DropdownMenuItem>
         ))}
-      </div>
-    </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

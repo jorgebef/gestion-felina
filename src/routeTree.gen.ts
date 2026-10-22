@@ -8,317 +8,312 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as IndexRouteImport } from "./routes/index";
-import { Route as AboutRouteImport } from "./routes/about";
-import { Route as DemoBetterAuthRouteImport } from "./routes/demo/better-auth";
-import { Route as DemoDbChatRouteImport } from "./routes/demo/db-chat";
-import { Route as DemoDbChatApiRouteImport } from "./routes/demo/db-chat-api";
-import { Route as DemoDrizzleRouteImport } from "./routes/demo/drizzle";
-import { Route as DemoI18nRouteImport } from "./routes/demo.i18n";
-import { Route as DemoNeonRouteImport } from "./routes/demo/neon";
-import { Route as DemoTableRouteImport } from "./routes/demo/table";
-import { Route as DemoTanstackQueryRouteImport } from "./routes/demo/tanstack-query";
-import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$";
-import { Route as DemoFormAddressRouteImport } from "./routes/demo/form.address";
-import { Route as DemoFormSimpleRouteImport } from "./routes/demo/form.simple";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as SiteRouteImport } from './routes/_site'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as SiteIndexRouteImport } from './routes/_site/index'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as SiteOpportunitiesIndexRouteImport } from './routes/_site/opportunities/index'
+import { Route as SiteOpportunitiesSlugRouteImport } from './routes/_site/opportunities/$slug'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as DashboardPropertiesIndexRouteImport } from './routes/dashboard/properties/index'
+import { Route as DashboardPropertiesNewRouteImport } from './routes/dashboard/properties/new'
+import { Route as DashboardPropertiesPropertyIdIndexRouteImport } from './routes/dashboard/properties/$propertyId/index'
+import { Route as DashboardPropertiesPropertyIdEditRouteImport } from './routes/dashboard/properties/$propertyId/edit'
 
-const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+const SiteRoute = SiteRouteImport.update({
+  id: '/_site',
   getParentRoute: () => rootRouteImport,
-} as any);
-const AboutRoute = AboutRouteImport.update({
-  id: "/about",
-  path: "/about",
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
-} as any);
-const DemoBetterAuthRoute = DemoBetterAuthRouteImport.update({
-  id: "/demo/better-auth",
-  path: "/demo/better-auth",
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
-} as any);
-const DemoDbChatRoute = DemoDbChatRouteImport.update({
-  id: "/demo/db-chat",
-  path: "/demo/db-chat",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const DemoDbChatApiRoute = DemoDbChatApiRouteImport.update({
-  id: "/demo/db-chat-api",
-  path: "/demo/db-chat-api",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const DemoDrizzleRoute = DemoDrizzleRouteImport.update({
-  id: "/demo/drizzle",
-  path: "/demo/drizzle",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const DemoI18nRoute = DemoI18nRouteImport.update({
-  id: "/demo/i18n",
-  path: "/demo/i18n",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const DemoNeonRoute = DemoNeonRouteImport.update({
-  id: "/demo/neon",
-  path: "/demo/neon",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const DemoTableRoute = DemoTableRouteImport.update({
-  id: "/demo/table",
-  path: "/demo/table",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const DemoTanstackQueryRoute = DemoTanstackQueryRouteImport.update({
-  id: "/demo/tanstack-query",
-  path: "/demo/tanstack-query",
-  getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
+const SiteIndexRoute = SiteIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SiteRoute,
+} as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const SiteOpportunitiesIndexRoute = SiteOpportunitiesIndexRouteImport.update({
+  id: '/opportunities/',
+  path: '/opportunities/',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteOpportunitiesSlugRoute = SiteOpportunitiesSlugRouteImport.update({
+  id: '/opportunities/$slug',
+  path: '/opportunities/$slug',
+  getParentRoute: () => SiteRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: "/api/auth/$",
-  path: "/api/auth/$",
+  id: '/api/auth/$',
+  path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
-} as any);
-const DemoFormAddressRoute = DemoFormAddressRouteImport.update({
-  id: "/demo/form/address",
-  path: "/demo/form/address",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const DemoFormSimpleRoute = DemoFormSimpleRouteImport.update({
-  id: "/demo/form/simple",
-  path: "/demo/form/simple",
-  getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
+const DashboardPropertiesIndexRoute =
+  DashboardPropertiesIndexRouteImport.update({
+    id: '/properties/',
+    path: '/properties/',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardPropertiesNewRoute = DashboardPropertiesNewRouteImport.update({
+  id: '/properties/new',
+  path: '/properties/new',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardPropertiesPropertyIdIndexRoute =
+  DashboardPropertiesPropertyIdIndexRouteImport.update({
+    id: '/properties/$propertyId/',
+    path: '/properties/$propertyId/',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardPropertiesPropertyIdEditRoute =
+  DashboardPropertiesPropertyIdEditRouteImport.update({
+    id: '/properties/$propertyId/edit',
+    path: '/properties/$propertyId/edit',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute;
-  "/about": typeof AboutRoute;
-  "/demo/better-auth": typeof DemoBetterAuthRoute;
-  "/demo/db-chat": typeof DemoDbChatRoute;
-  "/demo/db-chat-api": typeof DemoDbChatApiRoute;
-  "/demo/drizzle": typeof DemoDrizzleRoute;
-  "/demo/i18n": typeof DemoI18nRoute;
-  "/demo/neon": typeof DemoNeonRoute;
-  "/demo/table": typeof DemoTableRoute;
-  "/demo/tanstack-query": typeof DemoTanstackQueryRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/demo/form/address": typeof DemoFormAddressRoute;
-  "/demo/form/simple": typeof DemoFormSimpleRoute;
+  '/': typeof SiteIndexRoute
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/login': typeof LoginRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/opportunities/$slug': typeof SiteOpportunitiesSlugRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/dashboard/properties/new': typeof DashboardPropertiesNewRoute
+  '/opportunities/': typeof SiteOpportunitiesIndexRoute
+  '/dashboard/properties/': typeof DashboardPropertiesIndexRoute
+  '/dashboard/properties/$propertyId/edit': typeof DashboardPropertiesPropertyIdEditRoute
+  '/dashboard/properties/$propertyId/': typeof DashboardPropertiesPropertyIdIndexRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute;
-  "/about": typeof AboutRoute;
-  "/demo/better-auth": typeof DemoBetterAuthRoute;
-  "/demo/db-chat": typeof DemoDbChatRoute;
-  "/demo/db-chat-api": typeof DemoDbChatApiRoute;
-  "/demo/drizzle": typeof DemoDrizzleRoute;
-  "/demo/i18n": typeof DemoI18nRoute;
-  "/demo/neon": typeof DemoNeonRoute;
-  "/demo/table": typeof DemoTableRoute;
-  "/demo/tanstack-query": typeof DemoTanstackQueryRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/demo/form/address": typeof DemoFormAddressRoute;
-  "/demo/form/simple": typeof DemoFormSimpleRoute;
+  '/login': typeof LoginRoute
+  '/': typeof SiteIndexRoute
+  '/dashboard': typeof DashboardIndexRoute
+  '/opportunities/$slug': typeof SiteOpportunitiesSlugRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/dashboard/properties/new': typeof DashboardPropertiesNewRoute
+  '/opportunities': typeof SiteOpportunitiesIndexRoute
+  '/dashboard/properties': typeof DashboardPropertiesIndexRoute
+  '/dashboard/properties/$propertyId/edit': typeof DashboardPropertiesPropertyIdEditRoute
+  '/dashboard/properties/$propertyId': typeof DashboardPropertiesPropertyIdIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/": typeof IndexRoute;
-  "/about": typeof AboutRoute;
-  "/demo/better-auth": typeof DemoBetterAuthRoute;
-  "/demo/db-chat": typeof DemoDbChatRoute;
-  "/demo/db-chat-api": typeof DemoDbChatApiRoute;
-  "/demo/drizzle": typeof DemoDrizzleRoute;
-  "/demo/i18n": typeof DemoI18nRoute;
-  "/demo/neon": typeof DemoNeonRoute;
-  "/demo/table": typeof DemoTableRoute;
-  "/demo/tanstack-query": typeof DemoTanstackQueryRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/demo/form/address": typeof DemoFormAddressRoute;
-  "/demo/form/simple": typeof DemoFormSimpleRoute;
+  __root__: typeof rootRouteImport
+  '/_site': typeof SiteRouteWithChildren
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_site/': typeof SiteIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/_site/opportunities/$slug': typeof SiteOpportunitiesSlugRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/dashboard/properties/new': typeof DashboardPropertiesNewRoute
+  '/_site/opportunities/': typeof SiteOpportunitiesIndexRoute
+  '/dashboard/properties/': typeof DashboardPropertiesIndexRoute
+  '/dashboard/properties/$propertyId/edit': typeof DashboardPropertiesPropertyIdEditRoute
+  '/dashboard/properties/$propertyId/': typeof DashboardPropertiesPropertyIdIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | "/"
-    | "/about"
-    | "/demo/better-auth"
-    | "/demo/db-chat"
-    | "/demo/db-chat-api"
-    | "/demo/drizzle"
-    | "/demo/i18n"
-    | "/demo/neon"
-    | "/demo/table"
-    | "/demo/tanstack-query"
-    | "/api/auth/$"
-    | "/demo/form/address"
-    | "/demo/form/simple";
-  fileRoutesByTo: FileRoutesByTo;
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/dashboard/'
+    | '/opportunities/$slug'
+    | '/api/auth/$'
+    | '/dashboard/properties/new'
+    | '/opportunities/'
+    | '/dashboard/properties/'
+    | '/dashboard/properties/$propertyId/edit'
+    | '/dashboard/properties/$propertyId/'
+  fileRoutesByTo: FileRoutesByTo
   to:
-    | "/"
-    | "/about"
-    | "/demo/better-auth"
-    | "/demo/db-chat"
-    | "/demo/db-chat-api"
-    | "/demo/drizzle"
-    | "/demo/i18n"
-    | "/demo/neon"
-    | "/demo/table"
-    | "/demo/tanstack-query"
-    | "/api/auth/$"
-    | "/demo/form/address"
-    | "/demo/form/simple";
+    | '/login'
+    | '/'
+    | '/dashboard'
+    | '/opportunities/$slug'
+    | '/api/auth/$'
+    | '/dashboard/properties/new'
+    | '/opportunities'
+    | '/dashboard/properties'
+    | '/dashboard/properties/$propertyId/edit'
+    | '/dashboard/properties/$propertyId'
   id:
-    | "__root__"
-    | "/"
-    | "/about"
-    | "/demo/better-auth"
-    | "/demo/db-chat"
-    | "/demo/db-chat-api"
-    | "/demo/drizzle"
-    | "/demo/i18n"
-    | "/demo/neon"
-    | "/demo/table"
-    | "/demo/tanstack-query"
-    | "/api/auth/$"
-    | "/demo/form/address"
-    | "/demo/form/simple";
-  fileRoutesById: FileRoutesById;
+    | '__root__'
+    | '/_site'
+    | '/dashboard'
+    | '/login'
+    | '/_site/'
+    | '/dashboard/'
+    | '/_site/opportunities/$slug'
+    | '/api/auth/$'
+    | '/dashboard/properties/new'
+    | '/_site/opportunities/'
+    | '/dashboard/properties/'
+    | '/dashboard/properties/$propertyId/edit'
+    | '/dashboard/properties/$propertyId/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  AboutRoute: typeof AboutRoute;
-  DemoBetterAuthRoute: typeof DemoBetterAuthRoute;
-  DemoDbChatRoute: typeof DemoDbChatRoute;
-  DemoDbChatApiRoute: typeof DemoDbChatApiRoute;
-  DemoDrizzleRoute: typeof DemoDrizzleRoute;
-  DemoI18nRoute: typeof DemoI18nRoute;
-  DemoNeonRoute: typeof DemoNeonRoute;
-  DemoTableRoute: typeof DemoTableRoute;
-  DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute;
-  ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
-  DemoFormAddressRoute: typeof DemoFormAddressRoute;
-  DemoFormSimpleRoute: typeof DemoFormSimpleRoute;
+  SiteRoute: typeof SiteRouteWithChildren
+  DashboardRoute: typeof DashboardRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/": {
-      id: "/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/about": {
-      id: "/about";
-      path: "/about";
-      fullPath: "/about";
-      preLoaderRoute: typeof AboutRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/demo/better-auth": {
-      id: "/demo/better-auth";
-      path: "/demo/better-auth";
-      fullPath: "/demo/better-auth";
-      preLoaderRoute: typeof DemoBetterAuthRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/demo/db-chat": {
-      id: "/demo/db-chat";
-      path: "/demo/db-chat";
-      fullPath: "/demo/db-chat";
-      preLoaderRoute: typeof DemoDbChatRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/demo/db-chat-api": {
-      id: "/demo/db-chat-api";
-      path: "/demo/db-chat-api";
-      fullPath: "/demo/db-chat-api";
-      preLoaderRoute: typeof DemoDbChatApiRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/demo/drizzle": {
-      id: "/demo/drizzle";
-      path: "/demo/drizzle";
-      fullPath: "/demo/drizzle";
-      preLoaderRoute: typeof DemoDrizzleRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/demo/i18n": {
-      id: "/demo/i18n";
-      path: "/demo/i18n";
-      fullPath: "/demo/i18n";
-      preLoaderRoute: typeof DemoI18nRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/demo/neon": {
-      id: "/demo/neon";
-      path: "/demo/neon";
-      fullPath: "/demo/neon";
-      preLoaderRoute: typeof DemoNeonRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/demo/table": {
-      id: "/demo/table";
-      path: "/demo/table";
-      fullPath: "/demo/table";
-      preLoaderRoute: typeof DemoTableRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/demo/tanstack-query": {
-      id: "/demo/tanstack-query";
-      path: "/demo/tanstack-query";
-      fullPath: "/demo/tanstack-query";
-      preLoaderRoute: typeof DemoTanstackQueryRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/auth/$": {
-      id: "/api/auth/$";
-      path: "/api/auth/$";
-      fullPath: "/api/auth/$";
-      preLoaderRoute: typeof ApiAuthSplatRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/demo/form/address": {
-      id: "/demo/form/address";
-      path: "/demo/form/address";
-      fullPath: "/demo/form/address";
-      preLoaderRoute: typeof DemoFormAddressRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/demo/form/simple": {
-      id: "/demo/form/simple";
-      path: "/demo/form/simple";
-      fullPath: "/demo/form/simple";
-      preLoaderRoute: typeof DemoFormSimpleRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+    '/_site': {
+      id: '/_site'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof SiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_site/': {
+      id: '/_site/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof SiteIndexRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_site/opportunities/': {
+      id: '/_site/opportunities/'
+      path: '/opportunities'
+      fullPath: '/opportunities/'
+      preLoaderRoute: typeof SiteOpportunitiesIndexRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/opportunities/$slug': {
+      id: '/_site/opportunities/$slug'
+      path: '/opportunities/$slug'
+      fullPath: '/opportunities/$slug'
+      preLoaderRoute: typeof SiteOpportunitiesSlugRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/properties/': {
+      id: '/dashboard/properties/'
+      path: '/properties'
+      fullPath: '/dashboard/properties/'
+      preLoaderRoute: typeof DashboardPropertiesIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/properties/new': {
+      id: '/dashboard/properties/new'
+      path: '/properties/new'
+      fullPath: '/dashboard/properties/new'
+      preLoaderRoute: typeof DashboardPropertiesNewRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/properties/$propertyId/': {
+      id: '/dashboard/properties/$propertyId/'
+      path: '/properties/$propertyId'
+      fullPath: '/dashboard/properties/$propertyId/'
+      preLoaderRoute: typeof DashboardPropertiesPropertyIdIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/properties/$propertyId/edit': {
+      id: '/dashboard/properties/$propertyId/edit'
+      path: '/properties/$propertyId/edit'
+      fullPath: '/dashboard/properties/$propertyId/edit'
+      preLoaderRoute: typeof DashboardPropertiesPropertyIdEditRouteImport
+      parentRoute: typeof DashboardRoute
+    }
   }
 }
 
+interface SiteRouteChildren {
+  SiteIndexRoute: typeof SiteIndexRoute
+  SiteOpportunitiesSlugRoute: typeof SiteOpportunitiesSlugRoute
+  SiteOpportunitiesIndexRoute: typeof SiteOpportunitiesIndexRoute
+}
+
+const SiteRouteChildren: SiteRouteChildren = {
+  SiteIndexRoute: SiteIndexRoute,
+  SiteOpportunitiesSlugRoute: SiteOpportunitiesSlugRoute,
+  SiteOpportunitiesIndexRoute: SiteOpportunitiesIndexRoute,
+}
+
+const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
+
+interface DashboardRouteChildren {
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardPropertiesNewRoute: typeof DashboardPropertiesNewRoute
+  DashboardPropertiesIndexRoute: typeof DashboardPropertiesIndexRoute
+  DashboardPropertiesPropertyIdEditRoute: typeof DashboardPropertiesPropertyIdEditRoute
+  DashboardPropertiesPropertyIdIndexRoute: typeof DashboardPropertiesPropertyIdIndexRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardIndexRoute: DashboardIndexRoute,
+  DashboardPropertiesNewRoute: DashboardPropertiesNewRoute,
+  DashboardPropertiesIndexRoute: DashboardPropertiesIndexRoute,
+  DashboardPropertiesPropertyIdEditRoute:
+    DashboardPropertiesPropertyIdEditRoute,
+  DashboardPropertiesPropertyIdIndexRoute:
+    DashboardPropertiesPropertyIdIndexRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
-  DemoBetterAuthRoute: DemoBetterAuthRoute,
-  DemoDbChatRoute: DemoDbChatRoute,
-  DemoDbChatApiRoute: DemoDbChatApiRoute,
-  DemoDrizzleRoute: DemoDrizzleRoute,
-  DemoI18nRoute: DemoI18nRoute,
-  DemoNeonRoute: DemoNeonRoute,
-  DemoTableRoute: DemoTableRoute,
-  DemoTanstackQueryRoute: DemoTanstackQueryRoute,
+  SiteRoute: SiteRouteWithChildren,
+  DashboardRoute: DashboardRouteWithChildren,
+  LoginRoute: LoginRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  DemoFormAddressRoute: DemoFormAddressRoute,
-  DemoFormSimpleRoute: DemoFormSimpleRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx";
-import type { createStart } from "@tanstack/react-start";
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
   interface Register {
-    ssr: true;
-    router: Awaited<ReturnType<typeof getRouter>>;
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
   }
 }
