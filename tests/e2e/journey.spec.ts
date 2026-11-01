@@ -8,7 +8,8 @@ import { Client } from "pg";
  * Full journey through the UI: an association signs up and is approved, registers a
  * colony, a cat (with photo) and an action; the town hall joins by invitation, sees the
  * action in its feed, validates it, authorizes the colony and proposes a change that
- * the association accepts.
+ * the association accepts. Finally the association user edits their own profile from the
+ * user menu and signs back in with the new password.
  *
  * Steps that only the super admin or an email inbox can do (approval, invitation token)
  * are done straight in the database, so DATABASE_URL must point at the dev server's DB.
@@ -167,4 +168,35 @@ test("association and town hall workflow", async ({ browser }) => {
   await ana.goto(colonyUrl, { waitUntil: "networkidle" });
   await expect(ana.getByRole("heading", { name: "Parque de Andalucía (norte)" })).toBeVisible();
   await expect(ana.getByText("Autorizada").first()).toBeVisible();
+
+  // --- Own profile, from the user menu ------------------------------------------------------
+  await ana.getByRole("button", { name: anaEmail }).click();
+  await ana.getByRole("menuitem", { name: "Mi perfil" }).click();
+  await expect(ana).toHaveURL(/\/perfil$/);
+  await expect(ana.getByRole("heading", { name: "Mi perfil" })).toBeVisible();
+  await expect(ana.getByText("Este dispositivo")).toBeVisible();
+
+  await ana.getByLabel("Nombre", { exact: true }).fill("Ana Martín");
+  await ana.getByRole("button", { name: "Guardar nombre" }).click();
+  await expect(ana.getByText("Nombre actualizado")).toBeVisible();
+
+  const newPassword = `pw-${crypto.randomUUID()}`;
+  await ana.getByLabel("Contraseña actual").fill("incorrecta");
+  await ana.getByLabel("Nueva contraseña", { exact: true }).fill(newPassword);
+  await ana.getByLabel("Repite la nueva contraseña").fill(newPassword);
+  await ana.getByRole("button", { name: "Cambiar contraseña" }).click();
+  await expect(ana.getByText("La contraseña actual no es correcta.")).toBeVisible();
+  await ana.getByLabel("Contraseña actual").fill(password);
+  await ana.getByRole("button", { name: "Cambiar contraseña" }).click();
+  await expect(ana.getByText(/Contraseña cambiada/)).toBeVisible();
+
+  await ana.getByRole("button", { name: anaEmail }).click();
+  await ana.getByRole("menuitem", { name: "Cerrar sesión" }).click();
+  await ana.goto("/login", { waitUntil: "networkidle" });
+  await ana.getByLabel("Email").fill(anaEmail);
+  await ana.getByLabel("Contraseña").fill(newPassword);
+  await ana.getByRole("button", { name: "Entrar" }).click();
+  await expect(ana).toHaveURL(/\/panel/);
+  await ana.goto("/perfil", { waitUntil: "networkidle" });
+  await expect(ana.getByLabel("Nombre", { exact: true })).toHaveValue("Ana Martín");
 });

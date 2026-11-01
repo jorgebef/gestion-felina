@@ -11,6 +11,7 @@ import {
   Newspaper,
   Settings,
   ShieldCheck,
+  UserRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -153,14 +154,21 @@ function UserMenu({ viewer, compact = false }: { viewer: Viewer; compact?: boole
           ) : null}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/perfil">
+            <UserRound />
+            Mi perfil
+          </Link>
+        </DropdownMenuItem>
         {viewer.membership?.organization.status === "approved" ? (
           <DropdownMenuItem asChild>
             <Link to="/ajustes">
               <Settings />
-              Ajustes
+              Ajustes de la organización
             </Link>
           </DropdownMenuItem>
         ) : null}
+        <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => void signOut()}>
           <LogOut />
           Cerrar sesión

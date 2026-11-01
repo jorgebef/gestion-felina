@@ -111,6 +111,27 @@ export async function updateMyOrganization(ctx: OrgContext, data: OrganizationUp
   return { ok: true as const };
 }
 
+/** The caller's own account: what the profile page shows besides the session data. */
+export function getMyProfile(ctx: UserContext) {
+  return withTenant(ctx.user.id, async (tx) => {
+    const [me] = await tx
+      .select({ fullName: users.fullName, email: users.email, createdAt: users.createdAt })
+      .from(users)
+      .where(eq(users.id, ctx.user.id));
+    if (!me) throw new DomainError("NOT_FOUND");
+    const [member] = await tx
+      .select({ joinedAt: organizationMembers.createdAt })
+      .from(organizationMembers)
+      .where(eq(organizationMembers.userId, ctx.user.id));
+    return {
+      fullName: me.fullName ?? "",
+      email: me.email,
+      createdAt: me.createdAt,
+      joinedAt: member?.joinedAt ?? null,
+    };
+  });
+}
+
 export async function updateMyProfile(ctx: UserContext, data: UserProfileInput) {
   await withTenant(ctx.user.id, (tx) =>
     tx.update(users).set({ fullName: data.fullName }).where(eq(users.id, ctx.user.id)),

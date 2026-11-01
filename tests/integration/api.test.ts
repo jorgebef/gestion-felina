@@ -111,6 +111,24 @@ describeDb("API", () => {
     expect((await request("/api/v1/colonies")).status).toBe(401);
   });
 
+  it("lets every signed-in user read and edit their own profile", async () => {
+    expect((await request("/api/v1/me/profile")).status).toBe(401);
+
+    const pepa = clientFor(await signUp("pepa@example.test"));
+    const before = await pepa.me.profile();
+    expect(before).toMatchObject({ fullName: "pepa", email: "pepa@example.test", joinedAt: null });
+    expect(Date.parse(before.createdAt)).not.toBeNaN();
+
+    await expectApiError(pepa.me.update({ fullName: "   " }), "VALIDATION");
+    await pepa.me.update({ fullName: "Pepa Gómez" });
+    expect((await pepa.me.profile()).fullName).toBe("Pepa Gómez");
+    expect((await pepa.me.get())?.user.name).toBe("Pepa Gómez");
+
+    // Works with a pending organization too (the profile page is outside the org guard).
+    await pepa.organizations.register({ name: "Gatos de Getafe", municipalityCode: GETAFE });
+    expect((await pepa.me.profile()).joinedAt).not.toBeNull();
+  });
+
   it("runs the association and town hall workflow", async () => {
     // --- The super admin exists (granted from the CLI) --------------------------
     const rootCookie = await signUp("root@example.test");

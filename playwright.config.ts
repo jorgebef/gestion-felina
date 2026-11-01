@@ -1,8 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * End-to-end tests of the main user journey. They run against a dev server backed by
- * a database that already contains imported tenders (`vp run job sync`).
+ * End-to-end tests of the main user journey. They run against a dev server whose
+ * DATABASE_URL is a migrated database with the municipality catalogue (`vp run db:setup`).
  *
  *   vp run test:e2e
  */

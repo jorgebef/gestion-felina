@@ -22,3 +22,28 @@ export function errorMessage(error: unknown): string {
 export function isNotFound(error: unknown): boolean {
   return error instanceof ApiError && error.code === "NOT_FOUND";
 }
+
+/** User-facing message for Better Auth error codes (sign-in, sign-up, passwords, sessions). */
+export function authErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case "INVALID_EMAIL_OR_PASSWORD":
+      return "Email o contraseña incorrectos.";
+    case "INVALID_PASSWORD":
+      return "La contraseña actual no es correcta.";
+    case "USER_ALREADY_EXISTS":
+    case "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL":
+      return "Ya existe una cuenta con este email. Inicia sesión.";
+    case "PASSWORD_TOO_SHORT":
+      return "La contraseña debe tener al menos 8 caracteres.";
+    case "PASSWORD_TOO_LONG":
+      return "La contraseña no puede tener más de 128 caracteres.";
+    case "CREDENTIAL_ACCOUNT_NOT_FOUND":
+      return "Tu cuenta no tiene contraseña. Pide un enlace para crearla.";
+    case "SESSION_EXPIRED":
+      return "Por seguridad, vuelve a iniciar sesión e inténtalo de nuevo.";
+    case "TOO_MANY_REQUESTS":
+      return "Demasiados intentos. Espera un minuto.";
+    default:
+      return "No hemos podido completar la operación. Inténtalo de nuevo.";
+  }
+}

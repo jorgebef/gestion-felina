@@ -8,6 +8,7 @@ import {
   acceptInvitation,
   getInvitationPreview,
   getMyOrganization,
+  getMyProfile,
   inviteMember,
   listInvitations,
   listMembers,
@@ -49,6 +50,8 @@ export const meRoutes = new Hono()
     const viewer = await readViewer(user.id);
     return c.json({ user, ...viewer });
   })
+  /** The caller's own account (profile page). */
+  .get("/profile", requireUser, async (c) => c.json(await getMyProfile(c.var.ctx)))
   .patch("/", requireUser, zValidator("json", userProfileSchema, onInvalid), async (c) =>
     c.json(await updateMyProfile(c.var.ctx, c.req.valid("json"))),
   );

@@ -11,6 +11,7 @@ import { Field, FormError } from "@/components/forms/Field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { authErrorMessage } from "@/lib/errors";
 import { authConfigQuery } from "@/lib/queries";
 import { safeRedirect } from "@/lib/redirect";
 
@@ -35,22 +36,6 @@ export const Route = createFileRoute("/login")({
   }),
   component: LoginPage,
 });
-
-function authErrorMessage(code: string | undefined): string {
-  switch (code) {
-    case "INVALID_EMAIL_OR_PASSWORD":
-      return "Email o contraseña incorrectos.";
-    case "USER_ALREADY_EXISTS":
-    case "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL":
-      return "Ya existe una cuenta con este email. Inicia sesión.";
-    case "PASSWORD_TOO_SHORT":
-      return "La contraseña debe tener al menos 8 caracteres.";
-    case "TOO_MANY_REQUESTS":
-      return "Demasiados intentos. Espera un minuto.";
-    default:
-      return "No hemos podido completar la operación. Inténtalo de nuevo.";
-  }
-}
 
 function LoginPage() {
   const search = Route.useSearch();

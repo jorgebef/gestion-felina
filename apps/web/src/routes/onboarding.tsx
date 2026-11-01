@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, redirect, useRouter } from "@tanstack/react-router";
-import { Clock, LogOut, MailOpen, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Clock, LogOut, MailOpen, ShieldAlert, ShieldCheck, UserRound } from "lucide-react";
 
 import { APP_NAME, Logo } from "@/components/brand/Logo";
 import { OrganizationStatusBadge } from "@/components/felina/badges";
@@ -44,9 +44,16 @@ function Onboarding() {
       <header className="border-b bg-card">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <Logo />
-          <Button variant="ghost" size="sm" onClick={() => void signOut()}>
-            <LogOut /> Cerrar sesión
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/perfil">
+                <UserRound /> Mi perfil
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => void signOut()}>
+              <LogOut /> Cerrar sesión
+            </Button>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-8 sm:py-12">

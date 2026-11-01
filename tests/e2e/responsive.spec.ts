@@ -22,7 +22,14 @@ test("works on a phone", async ({ page }) => {
   await client.query("update organizations set status = 'approved' where name = $1", [name]);
   await client.end();
 
-  for (const path of ["/panel", "/colonias", "/gatos/nuevo", "/acciones/nueva", "/equipo"]) {
+  for (const path of [
+    "/panel",
+    "/colonias",
+    "/gatos/nuevo",
+    "/acciones/nueva",
+    "/equipo",
+    "/perfil",
+  ]) {
     await page.goto(path, { waitUntil: "networkidle" });
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

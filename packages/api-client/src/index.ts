@@ -105,6 +105,7 @@ export function createApi(options: ApiOptions) {
     me: {
       /** Signed-in user, platform-admin flag and organization, or null when anonymous. */
       get: () => unwrap(c.me.$get()),
+      profile: () => unwrap(c.me.profile.$get()),
       update: (json: Body<RawClient["me"]["$patch"]>) => unwrap(c.me.$patch({ json })),
     },
     organizations: {

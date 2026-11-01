@@ -14,6 +14,11 @@ export const viewerQuery = queryOptions({
   staleTime: 60_000,
 });
 
+export const profileQuery = queryOptions({
+  queryKey: ["viewer", "profile"],
+  queryFn: () => api().me.profile(),
+});
+
 export const authConfigQuery = queryOptions({
   queryKey: ["auth-config"],
   queryFn: () => api().public.authConfig(),
