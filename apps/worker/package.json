@@ -1,0 +1,25 @@
+{
+  "name": "@licita/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/index.ts",
+    "job": "tsx src/cli.ts",
+    "build": "vp pack",
+    "start": "node dist/index.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1156.0",
+    "@licita/db": "workspace:*",
+    "@licita/matching": "workspace:*",
+    "@licita/notifications": "workspace:*",
+    "@licita/procurement": "workspace:*",
+    "@licita/storage": "workspace:*",
+    "croner": "^10.0.1",
+    "drizzle-orm": "^0.45.4",
+    "fast-xml-parser": "^5.11.2",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  }
+}

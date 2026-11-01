@@ -1,0 +1,17 @@
+{
+  "name": "@licita/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@licita/domain": "workspace:*",
+    "@licita/schemas": "workspace:*",
+    "hono": "^4.13.13"
+  },
+  "devDependencies": {
+    "@licita/api": "workspace:*"
+  }
+}
