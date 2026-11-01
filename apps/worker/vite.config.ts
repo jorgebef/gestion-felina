@@ -9,6 +9,6 @@ export default defineConfig({
     platform: "node",
     target: "node24",
     sourcemap: true,
-    deps: { alwaysBundle: [/^@licita\//] },
+    deps: { alwaysBundle: [/^@felina\//] },
   },
 });

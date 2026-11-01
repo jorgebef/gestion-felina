@@ -1,24 +1,24 @@
 import { Link } from "@tanstack/react-router";
-import { BellRing, FileSearch, ShieldCheck } from "lucide-react";
+import { Landmark, MapPinned, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Logo } from "@/components/brand/Logo";
 
 const POINTS = [
   {
-    icon: FileSearch,
-    title: "Datos oficiales",
-    body: "Licitaciones importadas de la Plataforma de Contratación del Sector Público.",
+    icon: MapPinned,
+    title: "Colonias y gatos, ubicados",
+    body: "Ficha de cada gato con su foto, su colonia y todas las acciones realizadas.",
   },
   {
-    icon: BellRing,
-    title: "Avisos automáticos",
-    body: "Describe lo que haces y te avisamos cuando aparezca algo que encaje.",
+    icon: Landmark,
+    title: "Coordinación con tu ayuntamiento",
+    body: "El ayuntamiento autoriza colonias, valida acciones y propone cambios.",
   },
   {
     icon: ShieldCheck,
-    title: "Tus datos, privados",
-    body: "Tus perfiles, notas y seguimientos solo los ve tu empresa.",
+    title: "Datos protegidos",
+    body: "Cada asociación solo ve lo suyo. Las ubicaciones exactas no son públicas.",
   },
 ];
 
@@ -45,7 +45,7 @@ export function AuthLayout({
       </section>
       <aside className="hidden border-l bg-brand-strong p-10 text-white lg:flex lg:flex-col lg:justify-center">
         <p className="max-w-sm text-2xl leading-snug font-semibold tracking-tight">
-          Deja de revisar boletines a diario. Las oportunidades que te interesan, en tu correo.
+          Gestión de colonias felinas para asociaciones y ayuntamientos.
         </p>
         <ul className="mt-10 grid max-w-sm gap-6">
           {POINTS.map((p) => (

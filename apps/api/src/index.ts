@@ -1,10 +1,10 @@
-/** API server process: `vp run --filter @licita/api dev` (watch) or `node dist/index.mjs`. */
-import { loadEnv } from "@licita/db/env";
+/** API server process: `vp run --filter @felina/api dev` (watch) or `node dist/index.mjs`. */
+import { loadEnv } from "@felina/db/env";
 
 loadEnv();
 
 const { serve } = await import("@hono/node-server");
-const { closeDb } = await import("@licita/db");
+const { closeDb } = await import("@felina/db");
 const { createApp } = await import("./app.ts");
 const { apiEnv } = await import("./env.ts");
 

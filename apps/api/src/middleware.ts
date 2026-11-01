@@ -2,11 +2,11 @@ import { createMiddleware } from "hono/factory";
 
 import {
   DomainError,
-  readActiveCompany,
-  type CompanyContext,
+  readViewer,
+  type OrgContext,
   type SessionUser,
   type UserContext,
-} from "@licita/core/context";
+} from "@felina/core/context";
 
 import { auth } from "./auth.ts";
 
@@ -18,27 +18,41 @@ export async function sessionUser(headers: Headers): Promise<SessionUser | null>
   return { id, name: name ?? "", email };
 }
 
-/** Rejects anonymous calls; exposes `c.var.ctx.user`. */
+/** Rejects anonymous calls; exposes `c.var.ctx`. */
 export const requireUser = createMiddleware<{ Variables: { ctx: UserContext } }>(
   async (c, next) => {
     const user = await sessionUser(c.req.raw.headers);
     if (!user) throw new DomainError("UNAUTHORIZED");
-    c.set("ctx", { user });
+    const { isPlatformAdmin } = await readViewer(user.id);
+    c.set("ctx", { user, isPlatformAdmin });
     await next();
   },
 );
 
-/** Rejects calls from users without a company; exposes `c.var.ctx.user` and `.company`. */
-export const requireCompany = createMiddleware<{ Variables: { ctx: CompanyContext } }>(
+/** Only the super admin. */
+export const requirePlatformAdmin = createMiddleware<{ Variables: { ctx: UserContext } }>(
   async (c, next) => {
     const user = await sessionUser(c.req.raw.headers);
     if (!user) throw new DomainError("UNAUTHORIZED");
-    const company = await readActiveCompany(user.id);
-    if (!company) throw new DomainError("NO_COMPANY");
-    c.set("ctx", { user, company });
+    const { isPlatformAdmin } = await readViewer(user.id);
+    if (!isPlatformAdmin) throw new DomainError("FORBIDDEN", "Solo para el superadministrador");
+    c.set("ctx", { user, isPlatformAdmin });
     await next();
   },
 );
+
+/** Members of an approved organization; exposes `c.var.ctx.membership`. */
+export const requireOrg = createMiddleware<{ Variables: { ctx: OrgContext } }>(async (c, next) => {
+  const user = await sessionUser(c.req.raw.headers);
+  if (!user) throw new DomainError("UNAUTHORIZED");
+  const { isPlatformAdmin, membership } = await readViewer(user.id);
+  if (!membership) throw new DomainError("NO_ORGANIZATION", "No perteneces a ninguna organización");
+  if (membership.organization.status !== "approved") {
+    throw new DomainError("ORGANIZATION_NOT_APPROVED", "Tu organización todavía no está aprobada");
+  }
+  c.set("ctx", { user, isPlatformAdmin, membership });
+  await next();
+});
 
 /**
  * Hook for `zValidator(target, schema, onInvalid)`: validation failures go through the

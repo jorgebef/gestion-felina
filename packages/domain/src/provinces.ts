@@ -1,8 +1,6 @@
 /**
- * Spanish provinces with their official INE code (as stored in the database) and the
- * NUTS 2021 codes PLACSP uses for the place of execution (`CountrySubentityCode`).
- * Canarias and Illes Balears are split by island at NUTS-3; the pre-2016 codes
- * (ES530, ES701, ES702) are kept because older records still carry them.
+ * Spanish provinces with their official INE code: the first two digits of every
+ * municipality code (`municipalities.code`). NUTS 2021 codes are kept for reference.
  */
 export interface Province {
   code: string;
@@ -103,27 +101,4 @@ export function provincesByRegion(): { region: string; provinces: Province[] }[]
       provinces: provinces.toSorted((a, b) => a.name.localeCompare(b.name, "es")),
     }))
     .toSorted((a, b) => a.region.localeCompare(b.region, "es"));
-}
-
-export type ExecutionScope = "national" | "regional" | "provincial" | "unknown";
-
-/**
- * Resolves a NUTS code of any level to INE province codes: `ES` is the whole country,
- * `ES61` all of Andalucía, `ES618` only Sevilla. Non-Spanish codes resolve to nothing.
- */
-export function provincesForNuts(nuts: string): { provinces: string[]; scope: ExecutionScope } {
-  const code = nuts.trim().toUpperCase();
-  if (code === "ES") return { provinces: [], scope: "national" };
-  if (!code.startsWith("ES") || code.startsWith("ESZ")) return { provinces: [], scope: "unknown" };
-  const provinces = PROVINCES.filter((p) => p.nuts.some((n) => n.startsWith(code))).map(
-    (p) => p.code,
-  );
-  if (!provinces.length) return { provinces: [], scope: "unknown" };
-  return { provinces, scope: code.length >= 5 ? "provincial" : "regional" };
-}
-
-/** Best-effort lookup from the postal code's first two digits (they match the INE code). */
-export function provinceFromPostalCode(postalCode: string | null | undefined): string | undefined {
-  const prefix = postalCode?.trim().slice(0, 2);
-  return prefix && /^\d{5}$/.test(postalCode!.trim()) && BY_CODE.has(prefix) ? prefix : undefined;
 }

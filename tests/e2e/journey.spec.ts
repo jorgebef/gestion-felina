@@ -1,108 +1,170 @@
-import { expect, test } from "@playwright/test";
+import { createHash, randomBytes } from "node:crypto";
+
+import { expect, test, type Page } from "@playwright/test";
+import { config } from "dotenv";
+import { Client } from "pg";
 
 /**
- * Acceptance journey (sections 12.1–12.15 of the brief): sign up → company → first alert
- * profile → opportunities on the dashboard → detail with official link → save →
- * task → test email → sign out and back in with everything persisted.
+ * Full journey through the UI: an association signs up and is approved, registers a
+ * colony, a cat (with photo) and an action; the town hall joins by invitation, sees the
+ * action in its feed, validates it, authorizes the colony and proposes a change that
+ * the association accepts.
+ *
+ * Steps that only the super admin or an email inbox can do (approval, invitation token)
+ * are done straight in the database, so DATABASE_URL must point at the dev server's DB.
  */
-test("a new company finds, saves and tracks a relevant tender", async ({ page }) => {
-  const email = `e2e-${Date.now()}@example.test`;
-  const password = `pw-${crypto.randomUUID()}`;
+config({ path: [".env.local", ".env"], quiet: true });
 
-  // 1–2. Landing → sign up
-  // Wait for hydration: before it, forms submit natively instead of through the app.
-  await page.goto("/", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("contratos públicos");
-  await page.getByRole("link", { name: "Empezar gratis" }).click();
-  await page.waitForLoadState("networkidle");
-  await page.getByLabel("Tu nombre").fill("Ana Prueba");
-  await page.getByLabel("Email profesional").fill(email);
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+async function db<T>(work: (client: Client) => Promise<T>): Promise<T> {
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    return await work(client);
+  } finally {
+    await client.end();
+  }
+}
+
+async function signUp(page: Page, href: string, name: string, email: string, password: string) {
+  await page.goto(href, { waitUntil: "networkidle" });
+  await page.getByLabel("Tu nombre").fill(name);
+  await page.getByLabel("Email").fill(email);
   await page.getByLabel("Contraseña").fill(password);
   await page.getByRole("button", { name: "Crear cuenta" }).click();
+}
 
-  // 3. Company
-  await expect(page).toHaveURL(/\/onboarding/);
-  await page.getByLabel("Nombre de la empresa o del profesional").fill("Limpiezas Prueba S.L.");
-  await page.getByRole("button", { name: "Continuar" }).click();
+async function pickMunicipality(page: Page, label: string, term: string, option: RegExp) {
+  await page.getByRole("combobox", { name: label }).click();
+  await page.getByLabel("Buscar municipio").fill(term);
+  await page.getByRole("option", { name: option }).first().click();
+}
 
-  // 4. Services
-  await expect(page.getByRole("heading", { name: "Tu primer perfil de alertas" })).toBeVisible();
-  await page.getByLabel("Nombre del perfil").fill("Limpieza de edificios");
-  await page
-    .getByLabel("Describe tus servicios o productos")
-    .fill("Limpieza de edificios públicos, oficinas y colegios");
-  await page.getByRole("button", { name: /^Limpieza/ }).click();
-  await page.getByRole("button", { name: "Sugerir a partir de mi descripción" }).click();
-  await page.getByRole("button", { name: "Añadir" }).first().click();
-  await expect(page.getByRole("list", { name: "Códigos CPV seleccionados" })).toBeVisible();
-  await page.getByLabel("Palabras clave que deben aparecer").fill("limpieza");
-  await page.getByLabel("Palabras clave que deben aparecer").press("Enter");
-  await page.getByRole("button", { name: "Continuar" }).click();
+test("association and town hall workflow", async ({ browser }) => {
+  const run = Date.now();
+  const password = `pw-${crypto.randomUUID()}`;
+  const anaEmail = `ana-${run}@example.test`;
+  const associationName = `Gatos E2E ${run}`;
+  // A municipality nobody else uses in the dev database: Alcobendas (28006).
+  const municipalityCode = "28006";
+  const actionName = `Castración E2E ${run}`;
 
-  // 5. Provinces: whole country
-  await page.getByRole("switch", { name: "Toda España" }).click();
-  await page.getByRole("button", { name: "Continuar" }).click();
+  // --- Association signs up and registers -------------------------------------------
+  const ana = await (await browser.newContext()).newPage();
+  await signUp(ana, "/login?mode=signup", "Ana E2E", anaEmail, password);
+  await expect(ana.getByRole("heading", { name: "Registra tu asociación" })).toBeVisible();
+  await ana.getByLabel("Nombre de la asociación").fill(associationName);
+  await ana.getByRole("button", { name: "Enviar solicitud" }).click();
+  await expect(ana.getByText("Pendiente de aprobación")).toBeVisible();
 
-  // 6–7. Contract type + budget, save
-  await page.getByText("Servicios", { exact: true }).click();
-  await page.getByLabel("Presupuesto mínimo (€, sin IVA)").fill("1000");
-  await page.getByRole("button", { name: "Guardar y ver oportunidades" }).click();
+  // The super admin approves it (done in the database here).
+  await db((c) =>
+    c.query("update organizations set status = 'approved' where name = $1", [associationName]),
+  );
+  await ana.getByRole("button", { name: "Comprobar de nuevo" }).click();
+  await expect(ana).toHaveURL(/\/panel/);
+  await expect(ana.getByRole("heading", { name: associationName })).toBeVisible();
 
-  // 8–10. Matches from imported official data appear on the dashboard
-  await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByText("Perfil guardado")).toBeVisible();
-  const firstMatch = page.locator("table a[href^='/licitaciones/']").first();
-  await expect(firstMatch).toBeVisible();
+  // --- Colony ------------------------------------------------------------------------
+  await ana.goto("/colonias/nueva", { waitUntil: "networkidle" });
+  await ana.getByLabel("Nombre de la colonia").fill("Parque de Andalucía");
+  await ana.getByLabel("Latitud").fill("40.5361");
+  await ana.getByLabel("Longitud").fill("-3.6386");
+  await pickMunicipality(ana, "Municipio", "alcobendas", /Alcobendas/);
+  await ana.getByLabel("Dirección").fill("Calle Marqués de la Valdavia");
+  await ana.getByRole("button", { name: "Registrar colonia" }).click();
+  await expect(ana.getByRole("heading", { name: "Parque de Andalucía" })).toBeVisible();
+  await expect(ana.getByText("Sin autorizar").first()).toBeVisible();
+  const colonyUrl = ana.url();
 
-  // 11. Detail with official link
-  await firstMatch.click();
-  await expect(page.getByText("Por qué te lo mostramos")).toBeVisible();
-  const official = page.getByRole("link", { name: "Ver expediente oficial" });
-  await expect(official).toHaveAttribute("href", /contrataciondel(sector|estado)/);
-  await expect(page.getByText("Presupuesto base de licitación (sin IVA)")).toBeVisible();
-  await expect(page.getByText("Valor estimado del contrato")).toBeVisible();
-  const tenderUrl = page.url();
-  const tenderTitle = (await page.getByRole("heading", { level: 1 }).textContent())!.trim();
+  // --- Cat with photo ------------------------------------------------------------------
+  await ana.getByRole("link", { name: "Añadir gato" }).click();
+  await ana
+    .locator("#photo")
+    .setInputFiles({ name: "misi.png", mimeType: "image/png", buffer: PNG });
+  await expect(ana.getByRole("button", { name: "Cambiar foto" })).toBeVisible();
+  await ana.getByLabel("Nombre").first().fill("Misi");
+  await ana.getByLabel("Hembra").check();
+  await ana.getByRole("button", { name: "Registrar gato" }).click();
+  await expect(ana.getByRole("heading", { name: "Misi" })).toBeVisible();
+  // The photo is served by the API (only to people who can see the cat).
+  const photo = ana.getByRole("img", { name: "Foto de Misi" });
+  await expect
+    .poll(() => photo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0))
+    .toBe(true);
 
-  // 12. Save
-  await page.getByRole("button", { name: "Guardar", exact: true }).click();
-  await expect(page.getByText("Seguimiento de tu empresa")).toBeVisible();
+  // --- Action ---------------------------------------------------------------------------
+  await ana.getByRole("link", { name: "Acción" }).click();
+  await ana.getByRole("combobox", { name: "Tipo de acción" }).click();
+  await ana.getByRole("option", { name: "Castración" }).click();
+  await ana.getByLabel("Nombre", { exact: true }).fill(actionName);
+  await ana.getByLabel("Fecha y hora").fill("2030-05-04T10:30");
+  await ana.getByLabel("Es urgente").click();
+  await ana.getByRole("button", { name: "Guardar acción" }).click();
+  await expect(ana.getByRole("heading", { name: actionName })).toBeVisible();
+  await expect(ana.getByText("Urgente").first()).toBeVisible();
+  await expect(ana.getByText("Sin validar").first()).toBeVisible();
 
-  // 13. Task
-  await page.getByLabel("Título de la tarea").fill("Revisar pliego técnico");
-  await page.getByLabel("Fecha de la tarea").fill("2030-01-15");
-  await page.getByRole("button", { name: "Añadir tarea" }).click();
-  await expect(page.getByText("Revisar pliego técnico")).toBeVisible();
-  await page.getByLabel("Estado interno").click();
-  await page.getByRole("option", { name: "Evaluando" }).click();
-  await expect(page.getByText("Estado actualizado")).toBeVisible();
+  // --- Town hall joins by invitation ----------------------------------------------------
+  const token = randomBytes(32).toString("base64url");
+  const townHallEmail = `concejalia-${run}@example.test`;
+  await db(async (c) => {
+    await c.query("delete from organizations where kind = 'town_hall' and municipality_code = $1", [
+      municipalityCode,
+    ]);
+    const { rows } = await c.query<{ id: string }>(
+      `insert into organizations (kind, name, municipality_code, status)
+       values ('town_hall', 'Ayuntamiento de Alcobendas', $1, 'approved') returning id`,
+      [municipalityCode],
+    );
+    await c.query(
+      `insert into organization_invitations (organization_id, email, role, token_hash, expires_at)
+       values ($1, $2, 'admin', $3, now() + interval '1 day')`,
+      [rows[0]!.id, townHallEmail, createHash("sha256").update(token).digest("hex")],
+    );
+  });
+  const townHall = await (await browser.newContext()).newPage();
+  await townHall.goto(`/invitacion/${token}`, { waitUntil: "networkidle" });
+  await expect(townHall.getByRole("heading", { name: /Ayuntamiento de Alcobendas/ })).toBeVisible();
+  await townHall.getByRole("link", { name: /Crear cuenta con/ }).click();
+  await townHall.waitForLoadState("networkidle");
+  await townHall.getByLabel("Tu nombre").fill("Concejalía");
+  await townHall.getByLabel("Email").fill(townHallEmail);
+  await townHall.getByLabel("Contraseña").fill(password);
+  await townHall.getByRole("button", { name: "Crear cuenta" }).click();
+  await townHall.getByRole("button", { name: "Aceptar y unirme" }).click();
+  await expect(townHall).toHaveURL(/\/panel/);
 
-  // 14. Test notification (console provider in development)
-  await page.goto("/ajustes", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Enviar correo de prueba" }).click();
-  await expect(page.getByText(`Correo de prueba enviado a ${email}`)).toBeVisible();
+  // Feed → validate.
+  await townHall.goto("/feed", { waitUntil: "networkidle" });
+  const row = townHall.getByRole("listitem").filter({ hasText: actionName });
+  await expect(row.getByRole("link", { name: actionName })).toBeVisible();
+  await row.getByRole("button", { name: "Validar", exact: true }).click();
+  await expect(townHall.getByText("Acción validada")).toBeVisible();
 
-  // 15. Sign out, sign back in, data is still there
-  await page.goto("/dashboard");
-  await page
-    .getByRole("button", { name: /Limpiezas Prueba/ })
-    .first()
-    .click();
-  await page.getByRole("menuitem", { name: "Cerrar sesión" }).click();
-  await expect(page).toHaveURL(/\/$/);
-  await page.goto("/login");
-  await page.getByLabel("Email profesional").fill(email);
-  await page.getByLabel("Contraseña").fill(password);
-  await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
-  await page.goto("/mis-licitaciones");
-  await expect(page.getByRole("link", { name: tenderTitle }).first()).toBeVisible();
-  await expect(page.getByText("1 tarea pendiente").first()).toBeVisible();
-  await page.goto(tenderUrl);
-  await expect(page.getByText("Revisar pliego técnico")).toBeVisible();
-});
+  // Colony → authorize and propose a change.
+  await townHall.goto(colonyUrl, { waitUntil: "networkidle" });
+  await expect(townHall.getByText(associationName).first()).toBeVisible();
+  await expect(townHall.getByRole("link", { name: "Editar" })).toHaveCount(0);
+  await townHall.getByRole("button", { name: "Autorizar colonia" }).click();
+  await expect(townHall.getByRole("button", { name: "Retirar autorización" })).toBeVisible();
+  await townHall.getByRole("button", { name: "Proponer cambio" }).click();
+  const dialog = townHall.getByRole("dialog");
+  await dialog.getByLabel("Nombre").fill("Parque de Andalucía (norte)");
+  await dialog.getByLabel("Mensaje para la asociación").fill("Nombre del inventario municipal");
+  await dialog.getByRole("button", { name: "Enviar propuesta" }).click();
+  await expect(townHall.getByText("Propuesta enviada a la asociación gestora")).toBeVisible();
 
-test("private routes redirect anonymous visitors to login", async ({ page }) => {
-  await page.goto("/mis-licitaciones");
-  await expect(page).toHaveURL(/\/login\?redirect=/);
+  // --- The association accepts the proposal ----------------------------------------------
+  await ana.goto("/propuestas", { waitUntil: "networkidle" });
+  await expect(ana.getByText("Nombre del inventario municipal")).toBeVisible();
+  await ana.getByRole("button", { name: "Aceptar y aplicar" }).click();
+  await expect(ana.getByText("Cambios aplicados")).toBeVisible();
+  await ana.goto(colonyUrl, { waitUntil: "networkidle" });
+  await expect(ana.getByRole("heading", { name: "Parque de Andalucía (norte)" })).toBeVisible();
+  await expect(ana.getByText("Autorizada").first()).toBeVisible();
 });

@@ -11,22 +11,32 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as RecuperarRouteImport } from './routes/recuperar'
 import { Route as RestablecerRouteImport } from './routes/restablecer'
 import { Route as AppAjustesRouteImport } from './routes/_app/ajustes'
-import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
-import { Route as AppMisLicitacionesRouteImport } from './routes/_app/mis-licitaciones'
-import { Route as AppOportunidadesRouteImport } from './routes/_app/oportunidades'
+import { Route as AppEquipoRouteImport } from './routes/_app/equipo'
+import { Route as AppFeedRouteImport } from './routes/_app/feed'
+import { Route as AppPanelRouteImport } from './routes/_app/panel'
+import { Route as AppPropuestasRouteImport } from './routes/_app/propuestas'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminOrgIdRouteImport } from './routes/admin/$orgId'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
-import { Route as OnboardingIndexRouteImport } from './routes/onboarding/index'
-import { Route as OnboardingPerfilRouteImport } from './routes/onboarding/perfil'
-import { Route as AppAlertasIndexRouteImport } from './routes/_app/alertas/index'
-import { Route as AppAlertasProfileIdRouteImport } from './routes/_app/alertas/$profileId'
-import { Route as AppAlertasNuevaRouteImport } from './routes/_app/alertas/nueva'
-import { Route as AppLicitacionesIndexRouteImport } from './routes/_app/licitaciones/index'
-import { Route as AppLicitacionesTenderIdRouteImport } from './routes/_app/licitaciones/$tenderId'
+import { Route as InvitacionTokenRouteImport } from './routes/invitacion.$token'
+import { Route as AppAccionesIndexRouteImport } from './routes/_app/acciones/index'
+import { Route as AppAccionesNuevaRouteImport } from './routes/_app/acciones/nueva'
+import { Route as AppColoniasIndexRouteImport } from './routes/_app/colonias/index'
+import { Route as AppColoniasNuevaRouteImport } from './routes/_app/colonias/nueva'
+import { Route as AppGatosIndexRouteImport } from './routes/_app/gatos/index'
+import { Route as AppGatosNuevoRouteImport } from './routes/_app/gatos/nuevo'
+import { Route as AppAccionesActionIdIndexRouteImport } from './routes/_app/acciones/$actionId.index'
+import { Route as AppAccionesActionIdEditarRouteImport } from './routes/_app/acciones/$actionId.editar'
+import { Route as AppColoniasColonyIdIndexRouteImport } from './routes/_app/colonias/$colonyId.index'
+import { Route as AppColoniasColonyIdEditarRouteImport } from './routes/_app/colonias/$colonyId.editar'
+import { Route as AppGatosCatIdIndexRouteImport } from './routes/_app/gatos/$catId.index'
+import { Route as AppGatosCatIdEditarRouteImport } from './routes/_app/gatos/$catId.editar'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -35,6 +45,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -62,188 +77,299 @@ const AppAjustesRoute = AppAjustesRouteImport.update({
   path: '/ajustes',
   getParentRoute: () => AppRoute,
 } as any)
-const AppDashboardRoute = AppDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AppEquipoRoute = AppEquipoRouteImport.update({
+  id: '/equipo',
+  path: '/equipo',
   getParentRoute: () => AppRoute,
 } as any)
-const AppMisLicitacionesRoute = AppMisLicitacionesRouteImport.update({
-  id: '/mis-licitaciones',
-  path: '/mis-licitaciones',
+const AppFeedRoute = AppFeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
   getParentRoute: () => AppRoute,
 } as any)
-const AppOportunidadesRoute = AppOportunidadesRouteImport.update({
-  id: '/oportunidades',
-  path: '/oportunidades',
+const AppPanelRoute = AppPanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
   getParentRoute: () => AppRoute,
+} as any)
+const AppPropuestasRoute = AppPropuestasRouteImport.update({
+  id: '/propuestas',
+  path: '/propuestas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOrgIdRoute = AdminOrgIdRouteImport.update({
+  id: '/$orgId',
+  path: '/$orgId',
+  getParentRoute: () => AdminRoute,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
   id: '/api/$',
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OnboardingIndexRoute = OnboardingIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => OnboardingRoute,
+const InvitacionTokenRoute = InvitacionTokenRouteImport.update({
+  id: '/invitacion/$token',
+  path: '/invitacion/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const OnboardingPerfilRoute = OnboardingPerfilRouteImport.update({
-  id: '/perfil',
-  path: '/perfil',
-  getParentRoute: () => OnboardingRoute,
-} as any)
-const AppAlertasIndexRoute = AppAlertasIndexRouteImport.update({
-  id: '/alertas/',
-  path: '/alertas/',
+const AppAccionesIndexRoute = AppAccionesIndexRouteImport.update({
+  id: '/acciones/',
+  path: '/acciones/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAlertasProfileIdRoute = AppAlertasProfileIdRouteImport.update({
-  id: '/alertas/$profileId',
-  path: '/alertas/$profileId',
+const AppAccionesNuevaRoute = AppAccionesNuevaRouteImport.update({
+  id: '/acciones/nueva',
+  path: '/acciones/nueva',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAlertasNuevaRoute = AppAlertasNuevaRouteImport.update({
-  id: '/alertas/nueva',
-  path: '/alertas/nueva',
+const AppColoniasIndexRoute = AppColoniasIndexRouteImport.update({
+  id: '/colonias/',
+  path: '/colonias/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppLicitacionesIndexRoute = AppLicitacionesIndexRouteImport.update({
-  id: '/licitaciones/',
-  path: '/licitaciones/',
+const AppColoniasNuevaRoute = AppColoniasNuevaRouteImport.update({
+  id: '/colonias/nueva',
+  path: '/colonias/nueva',
   getParentRoute: () => AppRoute,
 } as any)
-const AppLicitacionesTenderIdRoute = AppLicitacionesTenderIdRouteImport.update({
-  id: '/licitaciones/$tenderId',
-  path: '/licitaciones/$tenderId',
+const AppGatosIndexRoute = AppGatosIndexRouteImport.update({
+  id: '/gatos/',
+  path: '/gatos/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGatosNuevoRoute = AppGatosNuevoRouteImport.update({
+  id: '/gatos/nuevo',
+  path: '/gatos/nuevo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAccionesActionIdIndexRoute =
+  AppAccionesActionIdIndexRouteImport.update({
+    id: '/acciones/$actionId/',
+    path: '/acciones/$actionId/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppAccionesActionIdEditarRoute =
+  AppAccionesActionIdEditarRouteImport.update({
+    id: '/acciones/$actionId/editar',
+    path: '/acciones/$actionId/editar',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppColoniasColonyIdIndexRoute =
+  AppColoniasColonyIdIndexRouteImport.update({
+    id: '/colonias/$colonyId/',
+    path: '/colonias/$colonyId/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppColoniasColonyIdEditarRoute =
+  AppColoniasColonyIdEditarRouteImport.update({
+    id: '/colonias/$colonyId/editar',
+    path: '/colonias/$colonyId/editar',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppGatosCatIdIndexRoute = AppGatosCatIdIndexRouteImport.update({
+  id: '/gatos/$catId/',
+  path: '/gatos/$catId/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGatosCatIdEditarRoute = AppGatosCatIdEditarRouteImport.update({
+  id: '/gatos/$catId/editar',
+  path: '/gatos/$catId/editar',
   getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
-  '/onboarding': typeof OnboardingRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
   '/ajustes': typeof AppAjustesRoute
-  '/dashboard': typeof AppDashboardRoute
-  '/mis-licitaciones': typeof AppMisLicitacionesRoute
-  '/oportunidades': typeof AppOportunidadesRoute
+  '/equipo': typeof AppEquipoRoute
+  '/feed': typeof AppFeedRoute
+  '/panel': typeof AppPanelRoute
+  '/propuestas': typeof AppPropuestasRoute
+  '/admin/$orgId': typeof AdminOrgIdRoute
   '/api/$': typeof ApiSplatRoute
-  '/onboarding/perfil': typeof OnboardingPerfilRoute
-  '/onboarding/': typeof OnboardingIndexRoute
-  '/alertas/$profileId': typeof AppAlertasProfileIdRoute
-  '/alertas/nueva': typeof AppAlertasNuevaRoute
-  '/licitaciones/$tenderId': typeof AppLicitacionesTenderIdRoute
-  '/alertas/': typeof AppAlertasIndexRoute
-  '/licitaciones/': typeof AppLicitacionesIndexRoute
+  '/invitacion/$token': typeof InvitacionTokenRoute
+  '/admin/': typeof AdminIndexRoute
+  '/acciones/nueva': typeof AppAccionesNuevaRoute
+  '/colonias/nueva': typeof AppColoniasNuevaRoute
+  '/gatos/nuevo': typeof AppGatosNuevoRoute
+  '/acciones/': typeof AppAccionesIndexRoute
+  '/colonias/': typeof AppColoniasIndexRoute
+  '/gatos/': typeof AppGatosIndexRoute
+  '/acciones/$actionId/editar': typeof AppAccionesActionIdEditarRoute
+  '/colonias/$colonyId/editar': typeof AppColoniasColonyIdEditarRoute
+  '/gatos/$catId/editar': typeof AppGatosCatIdEditarRoute
+  '/acciones/$actionId/': typeof AppAccionesActionIdIndexRoute
+  '/colonias/$colonyId/': typeof AppColoniasColonyIdIndexRoute
+  '/gatos/$catId/': typeof AppGatosCatIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
   '/ajustes': typeof AppAjustesRoute
-  '/dashboard': typeof AppDashboardRoute
-  '/mis-licitaciones': typeof AppMisLicitacionesRoute
-  '/oportunidades': typeof AppOportunidadesRoute
+  '/equipo': typeof AppEquipoRoute
+  '/feed': typeof AppFeedRoute
+  '/panel': typeof AppPanelRoute
+  '/propuestas': typeof AppPropuestasRoute
+  '/admin/$orgId': typeof AdminOrgIdRoute
   '/api/$': typeof ApiSplatRoute
-  '/onboarding/perfil': typeof OnboardingPerfilRoute
-  '/onboarding': typeof OnboardingIndexRoute
-  '/alertas/$profileId': typeof AppAlertasProfileIdRoute
-  '/alertas/nueva': typeof AppAlertasNuevaRoute
-  '/licitaciones/$tenderId': typeof AppLicitacionesTenderIdRoute
-  '/alertas': typeof AppAlertasIndexRoute
-  '/licitaciones': typeof AppLicitacionesIndexRoute
+  '/invitacion/$token': typeof InvitacionTokenRoute
+  '/admin': typeof AdminIndexRoute
+  '/acciones/nueva': typeof AppAccionesNuevaRoute
+  '/colonias/nueva': typeof AppColoniasNuevaRoute
+  '/gatos/nuevo': typeof AppGatosNuevoRoute
+  '/acciones': typeof AppAccionesIndexRoute
+  '/colonias': typeof AppColoniasIndexRoute
+  '/gatos': typeof AppGatosIndexRoute
+  '/acciones/$actionId/editar': typeof AppAccionesActionIdEditarRoute
+  '/colonias/$colonyId/editar': typeof AppColoniasColonyIdEditarRoute
+  '/gatos/$catId/editar': typeof AppGatosCatIdEditarRoute
+  '/acciones/$actionId': typeof AppAccionesActionIdIndexRoute
+  '/colonias/$colonyId': typeof AppColoniasColonyIdIndexRoute
+  '/gatos/$catId': typeof AppGatosCatIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
-  '/onboarding': typeof OnboardingRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
   '/_app/ajustes': typeof AppAjustesRoute
-  '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/mis-licitaciones': typeof AppMisLicitacionesRoute
-  '/_app/oportunidades': typeof AppOportunidadesRoute
+  '/_app/equipo': typeof AppEquipoRoute
+  '/_app/feed': typeof AppFeedRoute
+  '/_app/panel': typeof AppPanelRoute
+  '/_app/propuestas': typeof AppPropuestasRoute
+  '/admin/$orgId': typeof AdminOrgIdRoute
   '/api/$': typeof ApiSplatRoute
-  '/onboarding/perfil': typeof OnboardingPerfilRoute
-  '/onboarding/': typeof OnboardingIndexRoute
-  '/_app/alertas/$profileId': typeof AppAlertasProfileIdRoute
-  '/_app/alertas/nueva': typeof AppAlertasNuevaRoute
-  '/_app/licitaciones/$tenderId': typeof AppLicitacionesTenderIdRoute
-  '/_app/alertas/': typeof AppAlertasIndexRoute
-  '/_app/licitaciones/': typeof AppLicitacionesIndexRoute
+  '/invitacion/$token': typeof InvitacionTokenRoute
+  '/admin/': typeof AdminIndexRoute
+  '/_app/acciones/nueva': typeof AppAccionesNuevaRoute
+  '/_app/colonias/nueva': typeof AppColoniasNuevaRoute
+  '/_app/gatos/nuevo': typeof AppGatosNuevoRoute
+  '/_app/acciones/': typeof AppAccionesIndexRoute
+  '/_app/colonias/': typeof AppColoniasIndexRoute
+  '/_app/gatos/': typeof AppGatosIndexRoute
+  '/_app/acciones/$actionId/editar': typeof AppAccionesActionIdEditarRoute
+  '/_app/colonias/$colonyId/editar': typeof AppColoniasColonyIdEditarRoute
+  '/_app/gatos/$catId/editar': typeof AppGatosCatIdEditarRoute
+  '/_app/acciones/$actionId/': typeof AppAccionesActionIdIndexRoute
+  '/_app/colonias/$colonyId/': typeof AppColoniasColonyIdIndexRoute
+  '/_app/gatos/$catId/': typeof AppGatosCatIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/login'
     | '/onboarding'
     | '/recuperar'
     | '/restablecer'
     | '/ajustes'
-    | '/dashboard'
-    | '/mis-licitaciones'
-    | '/oportunidades'
+    | '/equipo'
+    | '/feed'
+    | '/panel'
+    | '/propuestas'
+    | '/admin/$orgId'
     | '/api/$'
-    | '/onboarding/perfil'
-    | '/onboarding/'
-    | '/alertas/$profileId'
-    | '/alertas/nueva'
-    | '/licitaciones/$tenderId'
-    | '/alertas/'
-    | '/licitaciones/'
+    | '/invitacion/$token'
+    | '/admin/'
+    | '/acciones/nueva'
+    | '/colonias/nueva'
+    | '/gatos/nuevo'
+    | '/acciones/'
+    | '/colonias/'
+    | '/gatos/'
+    | '/acciones/$actionId/editar'
+    | '/colonias/$colonyId/editar'
+    | '/gatos/$catId/editar'
+    | '/acciones/$actionId/'
+    | '/colonias/$colonyId/'
+    | '/gatos/$catId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
+    | '/onboarding'
     | '/recuperar'
     | '/restablecer'
     | '/ajustes'
-    | '/dashboard'
-    | '/mis-licitaciones'
-    | '/oportunidades'
+    | '/equipo'
+    | '/feed'
+    | '/panel'
+    | '/propuestas'
+    | '/admin/$orgId'
     | '/api/$'
-    | '/onboarding/perfil'
-    | '/onboarding'
-    | '/alertas/$profileId'
-    | '/alertas/nueva'
-    | '/licitaciones/$tenderId'
-    | '/alertas'
-    | '/licitaciones'
+    | '/invitacion/$token'
+    | '/admin'
+    | '/acciones/nueva'
+    | '/colonias/nueva'
+    | '/gatos/nuevo'
+    | '/acciones'
+    | '/colonias'
+    | '/gatos'
+    | '/acciones/$actionId/editar'
+    | '/colonias/$colonyId/editar'
+    | '/gatos/$catId/editar'
+    | '/acciones/$actionId'
+    | '/colonias/$colonyId'
+    | '/gatos/$catId'
   id:
     | '__root__'
     | '/'
     | '/_app'
+    | '/admin'
     | '/login'
     | '/onboarding'
     | '/recuperar'
     | '/restablecer'
     | '/_app/ajustes'
-    | '/_app/dashboard'
-    | '/_app/mis-licitaciones'
-    | '/_app/oportunidades'
+    | '/_app/equipo'
+    | '/_app/feed'
+    | '/_app/panel'
+    | '/_app/propuestas'
+    | '/admin/$orgId'
     | '/api/$'
-    | '/onboarding/perfil'
-    | '/onboarding/'
-    | '/_app/alertas/$profileId'
-    | '/_app/alertas/nueva'
-    | '/_app/licitaciones/$tenderId'
-    | '/_app/alertas/'
-    | '/_app/licitaciones/'
+    | '/invitacion/$token'
+    | '/admin/'
+    | '/_app/acciones/nueva'
+    | '/_app/colonias/nueva'
+    | '/_app/gatos/nuevo'
+    | '/_app/acciones/'
+    | '/_app/colonias/'
+    | '/_app/gatos/'
+    | '/_app/acciones/$actionId/editar'
+    | '/_app/colonias/$colonyId/editar'
+    | '/_app/gatos/$catId/editar'
+    | '/_app/acciones/$actionId/'
+    | '/_app/colonias/$colonyId/'
+    | '/_app/gatos/$catId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
-  OnboardingRoute: typeof OnboardingRouteWithChildren
+  OnboardingRoute: typeof OnboardingRoute
   RecuperarRoute: typeof RecuperarRoute
   RestablecerRoute: typeof RestablecerRoute
   ApiSplatRoute: typeof ApiSplatRoute
+  InvitacionTokenRoute: typeof InvitacionTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -260,6 +386,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -297,26 +430,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAjustesRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/dashboard': {
-      id: '/_app/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AppDashboardRouteImport
+    '/_app/equipo': {
+      id: '/_app/equipo'
+      path: '/equipo'
+      fullPath: '/equipo'
+      preLoaderRoute: typeof AppEquipoRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/mis-licitaciones': {
-      id: '/_app/mis-licitaciones'
-      path: '/mis-licitaciones'
-      fullPath: '/mis-licitaciones'
-      preLoaderRoute: typeof AppMisLicitacionesRouteImport
+    '/_app/feed': {
+      id: '/_app/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof AppFeedRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/oportunidades': {
-      id: '/_app/oportunidades'
-      path: '/oportunidades'
-      fullPath: '/oportunidades'
-      preLoaderRoute: typeof AppOportunidadesRouteImport
+    '/_app/panel': {
+      id: '/_app/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof AppPanelRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/propuestas': {
+      id: '/_app/propuestas'
+      path: '/propuestas'
+      fullPath: '/propuestas'
+      preLoaderRoute: typeof AppPropuestasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/$orgId': {
+      id: '/admin/$orgId'
+      path: '/$orgId'
+      fullPath: '/admin/$orgId'
+      preLoaderRoute: typeof AdminOrgIdRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/api/$': {
       id: '/api/$'
@@ -325,53 +479,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/onboarding/': {
-      id: '/onboarding/'
-      path: '/'
-      fullPath: '/onboarding/'
-      preLoaderRoute: typeof OnboardingIndexRouteImport
-      parentRoute: typeof OnboardingRoute
+    '/invitacion/$token': {
+      id: '/invitacion/$token'
+      path: '/invitacion/$token'
+      fullPath: '/invitacion/$token'
+      preLoaderRoute: typeof InvitacionTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/onboarding/perfil': {
-      id: '/onboarding/perfil'
-      path: '/perfil'
-      fullPath: '/onboarding/perfil'
-      preLoaderRoute: typeof OnboardingPerfilRouteImport
-      parentRoute: typeof OnboardingRoute
-    }
-    '/_app/alertas/': {
-      id: '/_app/alertas/'
-      path: '/alertas'
-      fullPath: '/alertas/'
-      preLoaderRoute: typeof AppAlertasIndexRouteImport
+    '/_app/acciones/': {
+      id: '/_app/acciones/'
+      path: '/acciones'
+      fullPath: '/acciones/'
+      preLoaderRoute: typeof AppAccionesIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/alertas/$profileId': {
-      id: '/_app/alertas/$profileId'
-      path: '/alertas/$profileId'
-      fullPath: '/alertas/$profileId'
-      preLoaderRoute: typeof AppAlertasProfileIdRouteImport
+    '/_app/acciones/nueva': {
+      id: '/_app/acciones/nueva'
+      path: '/acciones/nueva'
+      fullPath: '/acciones/nueva'
+      preLoaderRoute: typeof AppAccionesNuevaRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/alertas/nueva': {
-      id: '/_app/alertas/nueva'
-      path: '/alertas/nueva'
-      fullPath: '/alertas/nueva'
-      preLoaderRoute: typeof AppAlertasNuevaRouteImport
+    '/_app/colonias/': {
+      id: '/_app/colonias/'
+      path: '/colonias'
+      fullPath: '/colonias/'
+      preLoaderRoute: typeof AppColoniasIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/licitaciones/': {
-      id: '/_app/licitaciones/'
-      path: '/licitaciones'
-      fullPath: '/licitaciones/'
-      preLoaderRoute: typeof AppLicitacionesIndexRouteImport
+    '/_app/colonias/nueva': {
+      id: '/_app/colonias/nueva'
+      path: '/colonias/nueva'
+      fullPath: '/colonias/nueva'
+      preLoaderRoute: typeof AppColoniasNuevaRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/licitaciones/$tenderId': {
-      id: '/_app/licitaciones/$tenderId'
-      path: '/licitaciones/$tenderId'
-      fullPath: '/licitaciones/$tenderId'
-      preLoaderRoute: typeof AppLicitacionesTenderIdRouteImport
+    '/_app/gatos/': {
+      id: '/_app/gatos/'
+      path: '/gatos'
+      fullPath: '/gatos/'
+      preLoaderRoute: typeof AppGatosIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/gatos/nuevo': {
+      id: '/_app/gatos/nuevo'
+      path: '/gatos/nuevo'
+      fullPath: '/gatos/nuevo'
+      preLoaderRoute: typeof AppGatosNuevoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/acciones/$actionId/': {
+      id: '/_app/acciones/$actionId/'
+      path: '/acciones/$actionId'
+      fullPath: '/acciones/$actionId/'
+      preLoaderRoute: typeof AppAccionesActionIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/acciones/$actionId/editar': {
+      id: '/_app/acciones/$actionId/editar'
+      path: '/acciones/$actionId/editar'
+      fullPath: '/acciones/$actionId/editar'
+      preLoaderRoute: typeof AppAccionesActionIdEditarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/colonias/$colonyId/': {
+      id: '/_app/colonias/$colonyId/'
+      path: '/colonias/$colonyId'
+      fullPath: '/colonias/$colonyId/'
+      preLoaderRoute: typeof AppColoniasColonyIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/colonias/$colonyId/editar': {
+      id: '/_app/colonias/$colonyId/editar'
+      path: '/colonias/$colonyId/editar'
+      fullPath: '/colonias/$colonyId/editar'
+      preLoaderRoute: typeof AppColoniasColonyIdEditarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/gatos/$catId/': {
+      id: '/_app/gatos/$catId/'
+      path: '/gatos/$catId'
+      fullPath: '/gatos/$catId/'
+      preLoaderRoute: typeof AppGatosCatIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/gatos/$catId/editar': {
+      id: '/_app/gatos/$catId/editar'
+      path: '/gatos/$catId/editar'
+      fullPath: '/gatos/$catId/editar'
+      preLoaderRoute: typeof AppGatosCatIdEditarRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -379,52 +575,68 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAjustesRoute: typeof AppAjustesRoute
-  AppDashboardRoute: typeof AppDashboardRoute
-  AppMisLicitacionesRoute: typeof AppMisLicitacionesRoute
-  AppOportunidadesRoute: typeof AppOportunidadesRoute
-  AppAlertasProfileIdRoute: typeof AppAlertasProfileIdRoute
-  AppAlertasNuevaRoute: typeof AppAlertasNuevaRoute
-  AppLicitacionesTenderIdRoute: typeof AppLicitacionesTenderIdRoute
-  AppAlertasIndexRoute: typeof AppAlertasIndexRoute
-  AppLicitacionesIndexRoute: typeof AppLicitacionesIndexRoute
+  AppEquipoRoute: typeof AppEquipoRoute
+  AppFeedRoute: typeof AppFeedRoute
+  AppPanelRoute: typeof AppPanelRoute
+  AppPropuestasRoute: typeof AppPropuestasRoute
+  AppAccionesNuevaRoute: typeof AppAccionesNuevaRoute
+  AppColoniasNuevaRoute: typeof AppColoniasNuevaRoute
+  AppGatosNuevoRoute: typeof AppGatosNuevoRoute
+  AppAccionesIndexRoute: typeof AppAccionesIndexRoute
+  AppColoniasIndexRoute: typeof AppColoniasIndexRoute
+  AppGatosIndexRoute: typeof AppGatosIndexRoute
+  AppAccionesActionIdEditarRoute: typeof AppAccionesActionIdEditarRoute
+  AppColoniasColonyIdEditarRoute: typeof AppColoniasColonyIdEditarRoute
+  AppGatosCatIdEditarRoute: typeof AppGatosCatIdEditarRoute
+  AppAccionesActionIdIndexRoute: typeof AppAccionesActionIdIndexRoute
+  AppColoniasColonyIdIndexRoute: typeof AppColoniasColonyIdIndexRoute
+  AppGatosCatIdIndexRoute: typeof AppGatosCatIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAjustesRoute: AppAjustesRoute,
-  AppDashboardRoute: AppDashboardRoute,
-  AppMisLicitacionesRoute: AppMisLicitacionesRoute,
-  AppOportunidadesRoute: AppOportunidadesRoute,
-  AppAlertasProfileIdRoute: AppAlertasProfileIdRoute,
-  AppAlertasNuevaRoute: AppAlertasNuevaRoute,
-  AppLicitacionesTenderIdRoute: AppLicitacionesTenderIdRoute,
-  AppAlertasIndexRoute: AppAlertasIndexRoute,
-  AppLicitacionesIndexRoute: AppLicitacionesIndexRoute,
+  AppEquipoRoute: AppEquipoRoute,
+  AppFeedRoute: AppFeedRoute,
+  AppPanelRoute: AppPanelRoute,
+  AppPropuestasRoute: AppPropuestasRoute,
+  AppAccionesNuevaRoute: AppAccionesNuevaRoute,
+  AppColoniasNuevaRoute: AppColoniasNuevaRoute,
+  AppGatosNuevoRoute: AppGatosNuevoRoute,
+  AppAccionesIndexRoute: AppAccionesIndexRoute,
+  AppColoniasIndexRoute: AppColoniasIndexRoute,
+  AppGatosIndexRoute: AppGatosIndexRoute,
+  AppAccionesActionIdEditarRoute: AppAccionesActionIdEditarRoute,
+  AppColoniasColonyIdEditarRoute: AppColoniasColonyIdEditarRoute,
+  AppGatosCatIdEditarRoute: AppGatosCatIdEditarRoute,
+  AppAccionesActionIdIndexRoute: AppAccionesActionIdIndexRoute,
+  AppColoniasColonyIdIndexRoute: AppColoniasColonyIdIndexRoute,
+  AppGatosCatIdIndexRoute: AppGatosCatIdIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
-interface OnboardingRouteChildren {
-  OnboardingPerfilRoute: typeof OnboardingPerfilRoute
-  OnboardingIndexRoute: typeof OnboardingIndexRoute
+interface AdminRouteChildren {
+  AdminOrgIdRoute: typeof AdminOrgIdRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
-const OnboardingRouteChildren: OnboardingRouteChildren = {
-  OnboardingPerfilRoute: OnboardingPerfilRoute,
-  OnboardingIndexRoute: OnboardingIndexRoute,
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminOrgIdRoute: AdminOrgIdRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 
-const OnboardingRouteWithChildren = OnboardingRoute._addFileChildren(
-  OnboardingRouteChildren,
-)
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
-  OnboardingRoute: OnboardingRouteWithChildren,
+  OnboardingRoute: OnboardingRoute,
   RecuperarRoute: RecuperarRoute,
   RestablecerRoute: RestablecerRoute,
   ApiSplatRoute: ApiSplatRoute,
+  InvitacionTokenRoute: InvitacionTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

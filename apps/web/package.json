@@ -1,5 +1,5 @@
 {
-  "name": "@licita/web",
+  "name": "@felina/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,9 +11,9 @@
     "generate-routes": "tsr generate"
   },
   "dependencies": {
-    "@licita/api-client": "workspace:*",
-    "@licita/domain": "workspace:*",
-    "@licita/schemas": "workspace:*",
+    "@felina/api-client": "workspace:*",
+    "@felina/domain": "workspace:*",
+    "@felina/schemas": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-devtools": "0.10.13",
     "@tanstack/react-form": "1.33.5",
@@ -28,6 +28,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cn": "^0.5.0",
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.61.0",
     "next-themes": "^0.4.6",
     "nitro": "3.0.260903-beta",
@@ -45,6 +46,7 @@
     "@tailwindcss/typography": "^0.5.20",
     "@tanstack/devtools-vite": "0.8.5",
     "@tanstack/router-cli": "^1.167.46",
+    "@types/leaflet": "^1.9.20",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",

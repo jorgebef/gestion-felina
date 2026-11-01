@@ -1,5 +1,5 @@
 {
-  "name": "@licita/schemas",
+  "name": "@felina/schemas",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
     "./*": "./src/*.ts"
   },
   "dependencies": {
-    "@licita/domain": "workspace:*",
+    "@felina/domain": "workspace:*",
     "zod": "^4.6.7"
   }
 }

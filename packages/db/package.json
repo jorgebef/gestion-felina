@@ -1,5 +1,5 @@
 {
-  "name": "@licita/db",
+  "name": "@felina/db",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,14 +7,17 @@
     ".": "./src/index.ts",
     "./env": "./src/env.ts",
     "./migrate": "./src/migrate.ts",
-    "./seed-cpv": "./src/seed-cpv.ts"
+    "./seed-municipalities": "./src/seed-municipalities.ts",
+    "./grant-admin": "./src/grant-admin.ts"
   },
   "scripts": {
     "migrate": "tsx src/migrate.ts",
-    "seed": "tsx src/seed-cpv.ts",
+    "seed": "tsx src/seed-municipalities.ts",
+    "grant-admin": "tsx src/grant-admin.ts",
     "studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@felina/domain": "workspace:*",
     "dotenv": "^18.0.9",
     "drizzle-orm": "^0.45.4",
     "pg": "^8.23.1"

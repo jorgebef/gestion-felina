@@ -2,14 +2,16 @@ import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
-import { DomainError, type ErrorCode } from "@licita/core/context";
+import { DomainError, type ErrorCode } from "@felina/core/context";
 
 const STATUS: Record<ErrorCode, ContentfulStatusCode> = {
   UNAUTHORIZED: 401,
-  NO_COMPANY: 403,
+  NO_ORGANIZATION: 403,
+  ORGANIZATION_NOT_APPROVED: 403,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   VALIDATION: 400,
+  CONFLICT: 409,
   RATE_LIMITED: 429,
   INTERNAL: 500,
 };

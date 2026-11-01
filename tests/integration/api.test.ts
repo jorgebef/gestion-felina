@@ -1,9 +1,26 @@
-import { beforeEach, expect, it } from "vite-plus/test";
+/**
+ * The API end to end, in process: Better Auth sessions, the typed client, validation,
+ * error format and the full association ↔ town hall workflow.
+ */
+import { eq } from "drizzle-orm";
+import { afterEach, beforeEach, expect, it } from "vite-plus/test";
 
-import { createApp } from "@licita/api";
-import { ApiError, createApi } from "@licita/api-client";
+import { createApp } from "@felina/api";
+import { ApiError, createApi } from "@felina/api-client";
+import { getDb, users } from "@felina/db";
+import { setMailer } from "@felina/notifications/mailer";
+import { runActionReminders } from "@felina/notifications/reminders";
+import { createLocalStorage, setStorage } from "@felina/storage";
 
-import { describeDb, resetData } from "./helpers.ts";
+import {
+  describeDb,
+  GETAFE,
+  MADRID,
+  MADRID_POINT,
+  PNG,
+  recordingMailer,
+  resetData,
+} from "./helpers.ts";
 
 const ORIGIN = "http://localhost:3000";
 const app = createApp();
@@ -12,7 +29,9 @@ function request(path: string, init: RequestInit & { cookie?: string } = {}) {
   const headers = new Headers(init.headers);
   headers.set("origin", ORIGIN);
   if (init.cookie) headers.set("cookie", init.cookie);
-  if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json");
+  if (init.body && typeof init.body === "string" && !headers.has("content-type")) {
+    headers.set("content-type", "application/json");
+  }
   return app.request(`${ORIGIN}${path}`, { ...init, headers });
 }
 
@@ -44,21 +63,21 @@ function clientFor(cookie: string) {
   });
 }
 
-const PROFILE = {
-  name: "Limpieza",
-  serviceDescription: "Limpieza de edificios públicos y oficinas",
-  sectors: ["limpieza"],
-  cpvCodes: ["90910000"],
-  includeKeywords: ["limpieza"],
-  excludeKeywords: [],
-  provinceCodes: [],
-  nationwide: true,
-  contractTypes: ["services"],
-  minBudgetEur: null,
-  maxBudgetEur: null,
-  emailFrequency: "daily",
-  isActive: true,
-};
+async function expectApiError(promise: Promise<unknown>, code: string) {
+  const error = await promise.then(
+    () => null,
+    (e: unknown) => e,
+  );
+  expect(error).toBeInstanceOf(ApiError);
+  expect((error as ApiError).code).toBe(code);
+  return error as ApiError;
+}
+
+function tokenFrom(text: string): string {
+  const match = /\/invitacion\/([\w-]+)/.exec(text);
+  expect(match).toBeTruthy();
+  return match![1]!;
+}
 
 it("answers the health check", async () => {
   const response = await app.request("/health");
@@ -74,90 +93,264 @@ it("returns JSON errors for unknown routes", async () => {
 });
 
 describeDb("API", () => {
-  beforeEach(resetData);
+  let mail: ReturnType<typeof recordingMailer>;
+
+  beforeEach(async () => {
+    await resetData();
+    mail = recordingMailer();
+    setMailer(mail.mailer);
+    setStorage(createLocalStorage(`${process.cwd()}/.data/test-uploads`));
+  });
+  afterEach(() => {
+    setMailer(undefined);
+    setStorage(undefined);
+  });
 
   it("treats anonymous visitors as such", async () => {
     expect(await (await request("/api/v1/me")).json()).toBeNull();
-    const response = await request("/api/v1/dashboard");
-    expect(response.status).toBe(401);
-    expect(await response.json()).toMatchObject({ error: { code: "UNAUTHORIZED" } });
+    expect((await request("/api/v1/colonies")).status).toBe(401);
   });
 
-  it("runs onboarding: sign-up → company → alert profile", async () => {
-    const cookie = await signUp("ana@example.test");
-    const api = clientFor(cookie);
+  it("runs the association and town hall workflow", async () => {
+    // --- The super admin exists (granted from the CLI) --------------------------
+    const rootCookie = await signUp("root@example.test");
+    await getDb()
+      .update(users)
+      .set({ isPlatformAdmin: true })
+      .where(eq(users.email, "root@example.test"));
+    const root = clientFor(rootCookie);
 
-    expect(await api.me.get()).toMatchObject({
-      user: { email: "ana@example.test" },
-      company: null,
-    });
-    await expect(api.dashboard.get()).rejects.toMatchObject({ status: 403, code: "NO_COMPANY" });
-
-    await api.companies.create({ legalName: "Limpiezas Ana S.L." });
-    expect(await api.me.get()).toMatchObject({
-      company: { name: "Limpiezas Ana S.L.", role: "owner" },
-    });
-
-    const created = await api.alertProfiles.create(PROFILE as never);
-    const profiles = await api.alertProfiles.list();
-    expect(profiles.map((p) => p.id)).toEqual([created.id]);
-    expect((await api.dashboard.get()).profiles).toEqual({ total: 1, active: 1 });
-  });
-
-  it("rejects invalid input with a readable message", async () => {
-    const cookie = await signUp("val@example.test");
-    const api = clientFor(cookie);
-    await api.companies.create({ legalName: "Validaciones S.L." });
-
-    const error = await api.alertProfiles
-      .create({ ...PROFILE, name: "x" } as never)
-      .catch((e) => e);
-    expect(error).toBeInstanceOf(ApiError);
-    expect(error).toMatchObject({
-      status: 400,
-      code: "VALIDATION",
-      message: "Pon un nombre al perfil",
-    });
-
-    await expect(api.alertProfiles.get("not-a-uuid")).rejects.toMatchObject({
-      status: 400,
-      code: "VALIDATION",
-    });
-  });
-
-  it("keeps each company's data private", async () => {
+    // --- An association signs up and waits for approval -------------------------
     const ana = clientFor(await signUp("ana@example.test"));
-    await ana.companies.create({ legalName: "Empresa A" });
-    const { id } = await ana.alertProfiles.create(PROFILE as never);
-
-    const bob = clientFor(await signUp("bob@example.test"));
-    await bob.companies.create({ legalName: "Empresa B" });
-
-    await expect(bob.alertProfiles.get(id)).rejects.toMatchObject({ code: "NOT_FOUND" });
-    await expect(
-      bob.alertProfiles.update(id, { ...PROFILE, name: "Robado" } as never),
-    ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    await expect(bob.alertProfiles.delete(id)).rejects.toMatchObject({ code: "NOT_FOUND" });
-    expect(await bob.alertProfiles.list()).toEqual([]);
-    expect((await ana.alertProfiles.get(id)).name).toBe("Limpieza");
-  });
-
-  it("lets the owner edit the company", async () => {
-    const api = clientFor(await signUp("own@example.test"));
-    await api.companies.create({ legalName: "Propietaria S.L." });
-    await api.companies.updateCurrent({ legalName: "Propietaria Renombrada S.L." });
-    expect((await api.companies.current()).company.legalName).toBe("Propietaria Renombrada S.L.");
-  });
-
-  it("blocks cross-site form posts", async () => {
-    const response = await app.request(`${ORIGIN}/api/v1/companies`, {
-      method: "POST",
-      headers: {
-        origin: "https://evil.example",
-        "content-type": "application/x-www-form-urlencoded",
-      },
-      body: "legalName=x",
+    await expectApiError(ana.colonies.list(), "NO_ORGANIZATION");
+    await expectApiError(ana.organizations.register({ name: "x" } as never), "VALIDATION");
+    const { id: associationId } = await ana.organizations.register({
+      name: "Gatos del Oeste",
+      municipalityCode: MADRID,
+      contactEmail: "hola@gatosdeloeste.test",
     });
-    expect(response.status).toBe(403);
+    expect(mail.sent.at(-1)).toMatchObject({ to: "root@example.test" });
+    expect((await ana.me.get())?.membership?.organization.status).toBe("pending");
+    await expectApiError(ana.colonies.list(), "ORGANIZATION_NOT_APPROVED");
+    await expectApiError(ana.organizations.register({ name: "Otra más" }), "CONFLICT");
+
+    // Only the super admin reviews.
+    await expectApiError(ana.admin.review(associationId, { status: "approved" }), "FORBIDDEN");
+    const pending = await root.admin.organizations({ status: "pending" });
+    expect(pending.items.map((o) => o.name)).toEqual(["Gatos del Oeste"]);
+    await root.admin.review(associationId, { status: "approved", note: "Bienvenidas" });
+    expect(mail.sent.at(-1)).toMatchObject({ to: "ana@example.test" });
+    expect(mail.sent.at(-1)!.subject).toContain("aprobada");
+
+    // --- Colony, photo, cat, action ----------------------------------------------
+    await expectApiError(
+      ana.colonies.create({
+        name: "Fuera",
+        latitude: 48.85,
+        longitude: 2.35,
+        municipalityCode: MADRID,
+      }),
+      "VALIDATION",
+    );
+    const { id: colonyId } = await ana.colonies.create({
+      name: "Parque del Oeste",
+      description: "Junto a la rosaleda",
+      ...MADRID_POINT,
+      municipalityCode: MADRID,
+      address: "Paseo de Ruperto Chapí",
+    });
+
+    await expectApiError(
+      ana.cats.uploadPhoto(new Blob([new TextEncoder().encode("not an image")])),
+      "VALIDATION",
+    );
+    const { photoKey } = await ana.cats.uploadPhoto(new Blob([PNG], { type: "image/png" }));
+    expect(photoKey).toMatch(new RegExp(`^cats/${associationId}/`));
+    const { id: catId } = await ana.cats.create({
+      colonyId,
+      name: "Misi",
+      sex: "female",
+      birthDate: null,
+      photoKey,
+      ...MADRID_POINT,
+      municipalityCode: MADRID,
+    });
+    const photo = await request(`/api/v1/cats/${catId}/photo`, {
+      cookie: (await signInCookie("ana@example.test")) ?? "",
+    });
+    expect(photo.status).toBe(200);
+    expect(photo.headers.get("content-type")).toBe("image/png");
+    expect(new Uint8Array(await photo.arrayBuffer())).toEqual(PNG);
+
+    const me = await ana.me.get();
+    const today = new Date();
+    today.setHours(today.getHours() + 1);
+    const { id: actionId } = await ana.actions.create({
+      actionType: "sterilization",
+      name: "Castración de Misi",
+      scheduledAt: today.toISOString(),
+      isUrgent: true,
+      status: "planned",
+      colonyId,
+      catIds: [catId],
+      participantIds: [me!.user.id],
+    });
+    const detail = await ana.actions.get(actionId);
+    expect(detail.action.municipalityName).toBe("Madrid");
+    expect(detail.cats.map((c) => c.name)).toEqual(["Misi"]);
+
+    // --- The super admin registers Madrid's town hall and invites its admin -------
+    const townHall = await root.admin.createTownHall({
+      municipalityCode: MADRID,
+      adminEmail: "Concejalia@Madrid.test",
+    });
+    expect(townHall.emailSent).toBe(true);
+    await expectApiError(
+      root.admin.createTownHall({ municipalityCode: MADRID, adminEmail: "otra@madrid.test" }),
+      "CONFLICT",
+    );
+    const invitationEmail = mail.sent.at(-1)!;
+    expect(invitationEmail.to).toBe("concejalia@madrid.test");
+    const token = tokenFrom(invitationEmail.text);
+    expect((await clientFor("").public.invitation(token)).organizationName).toBe(
+      "Ayuntamiento de Madrid",
+    );
+
+    // Someone else cannot use the link; the invited person can.
+    const intruder = clientFor(await signUp("intruso@example.test"));
+    await expectApiError(intruder.invitations.accept(token), "FORBIDDEN");
+    const concejalia = clientFor(await signUp("concejalia@madrid.test"));
+    await concejalia.invitations.accept(token);
+    const viewer = await concejalia.me.get();
+    expect(viewer?.membership).toMatchObject({
+      role: "admin",
+      organization: { kind: "town_hall", status: "approved", municipalityName: "Madrid" },
+    });
+
+    // --- The town hall sees everything in Madrid, read-only ------------------------
+    const colonies = await concejalia.colonies.list();
+    expect(colonies.map((c) => [c.name, c.organizationName])).toEqual([
+      ["Parque del Oeste", "Gatos del Oeste"],
+    ]);
+    expect((await concejalia.cats.list()).map((c) => c.name)).toEqual(["Misi"]);
+    const feed = await concejalia.actions.list({ view: "feed" });
+    expect(feed.items.map((a) => [a.name, a.validatedAt])).toEqual([["Castración de Misi", null]]);
+    await expectApiError(
+      concejalia.colonies.update(colonyId, {
+        name: "Cambio directo",
+        ...MADRID_POINT,
+        municipalityCode: MADRID,
+      }),
+      "FORBIDDEN",
+    );
+    await expectApiError(concejalia.colonies.delete(colonyId), "FORBIDDEN");
+
+    await concejalia.colonies.setAuthorization(colonyId, true);
+    await concejalia.actions.setValidation(actionId, true);
+    expect((await ana.colonies.get(colonyId)).colony.authorizedAt).not.toBeNull();
+    expect((await concejalia.dashboard.get()).actions.pendingValidation).toBe(0);
+
+    // Editing after validation is flagged in the feed.
+    await ana.actions.setStatus(actionId, "done");
+    const [edited] = (await concejalia.actions.list({ view: "feed" })).items;
+    expect(edited).toMatchObject({ status: "done", modifiedAfterValidation: true });
+    expect((await ana.cats.get(catId)).cat.sterilized).toBe(true);
+
+    // --- Change proposals ----------------------------------------------------------
+    await expectApiError(
+      concejalia.colonies.propose(colonyId, { changes: { name: "Parque del Oeste" } }),
+      "VALIDATION",
+    );
+    const { id: proposalId } = await concejalia.colonies.propose(colonyId, {
+      changes: { name: "Parque del Oeste (rosaleda)", address: null },
+      message: "Nombre según el inventario municipal",
+    });
+    expect(mail.sent.at(-1)).toMatchObject({ to: "ana@example.test" });
+    const incoming = await ana.proposals.list({ status: "pending" });
+    expect(incoming).toHaveLength(1);
+    expect(incoming[0]).toMatchObject({
+      incoming: true,
+      changes: { name: "Parque del Oeste (rosaleda)", address: null },
+      previousValues: { name: "Parque del Oeste", address: "Paseo de Ruperto Chapí" },
+    });
+    await expectApiError(
+      concejalia.proposals.resolve(proposalId, { decision: "accept" }),
+      "FORBIDDEN",
+    );
+    await ana.proposals.resolve(proposalId, { decision: "accept", note: "Gracias" });
+    const updated = await ana.colonies.get(colonyId);
+    expect(updated.colony).toMatchObject({ name: "Parque del Oeste (rosaleda)", address: null });
+    expect(mail.sent.at(-1)).toMatchObject({ to: "concejalia@madrid.test" });
+
+    // Cats too, and the town hall can withdraw a pending proposal.
+    const { id: catProposal } = await concejalia.cats.propose(catId, {
+      changes: { sex: "male" },
+    });
+    await concejalia.proposals.withdraw(catProposal);
+    expect((await ana.proposals.list({ status: "withdrawn" })).map((p) => p.id)).toEqual([
+      catProposal,
+    ]);
+
+    // --- Another municipality's town hall sees nothing ------------------------------
+    const getafe = await root.admin.createTownHall({
+      municipalityCode: GETAFE,
+      adminEmail: "getafe@getafe.test",
+    });
+    expect(getafe.id).toBeTruthy();
+    const getafeUser = clientFor(await signUp("getafe@getafe.test"));
+    await getafeUser.invitations.accept(tokenFrom(mail.sent.at(-1)!.text));
+    expect(await getafeUser.colonies.list()).toEqual([]);
+    await expectApiError(getafeUser.colonies.get(colonyId), "NOT_FOUND");
+    expect(
+      (
+        await request(`/api/v1/cats/${catId}/photo`, {
+          cookie: (await signInCookie("getafe@getafe.test")) ?? "",
+        })
+      ).status,
+    ).toBe(404);
+
+    // --- Members and invitations ------------------------------------------------------
+    const invite = await ana.organizations.invite({ email: "voluntaria@example.test" });
+    expect(invite.emailSent).toBe(true);
+    const voluntaria = clientFor(await signUp("voluntaria@example.test"));
+    await voluntaria.invitations.accept(tokenFrom(mail.sent.at(-1)!.text));
+    expect((await ana.organizations.members()).map((m) => [m.email, m.role])).toEqual([
+      ["ana@example.test", "admin"],
+      ["voluntaria@example.test", "member"],
+    ]);
+    // Members create cats and actions but not colonies.
+    await expectApiError(
+      voluntaria.colonies.create({ name: "Nueva", ...MADRID_POINT, municipalityCode: MADRID }),
+      "FORBIDDEN",
+    );
+    await expectApiError(voluntaria.organizations.invite({ email: "x@example.test" }), "FORBIDDEN");
+
+    // --- Daily reminders ---------------------------------------------------------------
+    const { id: plannedId } = await ana.actions.create({
+      actionType: "feeding",
+      name: "Ronda de comida",
+      scheduledAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+      colonyId,
+      participantIds: [me!.user.id],
+    });
+    expect(plannedId).toBeTruthy();
+    const before = mail.sent.length;
+    const first = await runActionReminders();
+    const again = await runActionReminders();
+    expect(first.sent).toBeGreaterThanOrEqual(1);
+    expect(again.sent).toBe(0);
+    expect(mail.sent.length - before).toBe(first.sent);
   });
+
+  async function signInCookie(email: string) {
+    const response = await request("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "x-forwarded-for": `198.51.100.${++clientIp}` },
+      body: JSON.stringify({ email, password: "correct horse battery" }),
+    });
+    return response.headers
+      .getSetCookie()
+      .map((c) => c.split(";")[0])
+      .find((c) => c.includes("session_token"));
+  }
 });

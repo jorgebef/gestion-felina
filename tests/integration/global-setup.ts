@@ -1,8 +1,8 @@
 import { config } from "dotenv";
 import { Client } from "pg";
 
-import { migrate } from "@licita/db/migrate";
-import { seedCpv } from "@licita/db/seed-cpv";
+import { migrate } from "@felina/db/migrate";
+import { seedMunicipalities } from "@felina/db/seed-municipalities";
 
 /** Recreates the test database schema from the versioned migrations. */
 export default async function setup() {
@@ -17,5 +17,5 @@ export default async function setup() {
   await client.query("DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;");
   await client.end();
   await migrate(url, () => {});
-  await seedCpv(url);
+  await seedMunicipalities(url);
 }

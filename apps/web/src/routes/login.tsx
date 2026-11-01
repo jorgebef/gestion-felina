@@ -78,7 +78,9 @@ function LoginPage() {
       }
       queryClient.clear();
       await router.invalidate();
-      await router.navigate({ href: isSignUp ? "/onboarding" : target });
+      await router.navigate({
+        href: isSignUp ? safeRedirect(search.redirect, "/onboarding") : target,
+      });
     },
   });
 
@@ -87,8 +89,8 @@ function LoginPage() {
       title={isSignUp ? "Crea tu cuenta" : "Inicia sesión"}
       subtitle={
         isSignUp
-          ? "Gratis. Solo te pedimos lo imprescindible."
-          : "Accede a tus oportunidades y licitaciones guardadas."
+          ? "Después podrás registrar tu asociación o aceptar una invitación."
+          : "Accede a las colonias, gatos y acciones de tu organización."
       }
     >
       {search.reset === "ok" ? (
@@ -133,12 +135,12 @@ function LoginPage() {
           }}
         >
           {(field) => (
-            <Field id="email" label="Email profesional" error={field.state.meta.errors[0]}>
+            <Field id="email" label="Email" error={field.state.meta.errors[0]}>
               <Input
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="nombre@empresa.es"
+                placeholder="nombre@asociacion.org"
                 value={field.state.value}
                 onBlur={field.handleBlur}
                 onChange={(e) => field.handleChange(e.target.value)}
@@ -205,7 +207,7 @@ function LoginPage() {
           onClick={() =>
             void authClient.signIn.social({
               provider: "google",
-              callbackURL: isSignUp ? "/onboarding" : target,
+              callbackURL: isSignUp ? safeRedirect(search.redirect, "/onboarding") : target,
             })
           }
         >
@@ -215,8 +217,8 @@ function LoginPage() {
 
       {isSignUp ? (
         <p className="mt-4 text-xs text-muted-foreground">
-          Al crear la cuenta aceptas que tratemos tu email y nombre para prestarte el servicio y
-          enviarte los avisos que configures. Puedes desactivarlos en cualquier momento.
+          Al crear la cuenta aceptas que tratemos tu nombre y email para prestarte el servicio y
+          enviarte los avisos de tu organización.
         </p>
       ) : null}
 
@@ -228,7 +230,7 @@ function LoginPage() {
           className="font-medium text-foreground underline-offset-4 hover:underline"
           onClick={() => setError(null)}
         >
-          {isSignUp ? "Inicia sesión" : "Regístrate gratis"}
+          {isSignUp ? "Inicia sesión" : "Crear cuenta"}
         </Link>
       </p>
     </AuthLayout>

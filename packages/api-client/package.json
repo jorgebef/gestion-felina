@@ -1,5 +1,5 @@
 {
-  "name": "@licita/api-client",
+  "name": "@felina/api-client",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,11 +7,11 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@licita/domain": "workspace:*",
-    "@licita/schemas": "workspace:*",
+    "@felina/domain": "workspace:*",
+    "@felina/schemas": "workspace:*",
     "hono": "^4.13.13"
   },
   "devDependencies": {
-    "@licita/api": "workspace:*"
+    "@felina/api": "workspace:*"
   }
 }

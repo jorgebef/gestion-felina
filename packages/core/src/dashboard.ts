@@ -1,251 +1,159 @@
-/** Dashboard, match lists and the user's email history. */
-import { and, desc, eq, gte, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
+/** Home page figures. Associations see their own work; town halls their municipality. */
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 
 import {
-  alertProfiles,
-  contractingAuthorities,
-  notificationDeliveries,
-  tenderMatches,
-  tenders,
-  trackedTenders,
+  actionCats,
+  actions,
+  cats,
+  changeProposals,
+  colonies,
+  inSequence,
+  organizationMembers,
+  organizations,
   withTenant,
-  type TenantTx,
-} from "@licita/db";
+} from "@felina/db";
+import { madridDayBounds } from "@felina/domain/time";
 
-import { ACTIONABLE_STATUSES } from "@licita/domain/tenders";
-import { sendTestNotification } from "@licita/notifications/service";
-import type { MatchListQuery } from "@licita/schemas/matches";
+import { isTownHall, type OrgContext } from "./context.ts";
 
-import type { CompanyContext } from "./context.ts";
-import { upcomingTasks } from "./tasks.ts";
-import { lastImport } from "./tenders.ts";
+const actionColumns = {
+  id: actions.id,
+  name: actions.name,
+  actionType: actions.actionType,
+  status: actions.status,
+  scheduledAt: actions.scheduledAt,
+  isUrgent: actions.isUrgent,
+  validatedAt: actions.validatedAt,
+  colonyName: colonies.name,
+  organizationName: organizations.name,
+};
 
-const DAY = 86_400_000;
-const MATCH_PAGE_SIZE = 20;
-
-function actionable(now: Date) {
-  return and(
-    inArray(tenders.status, [...ACTIONABLE_STATUSES]),
-    or(isNull(tenders.submissionDeadlineAt), gte(tenders.submissionDeadlineAt, now)),
-  );
-}
-
-const notDismissed = or(isNull(tenderMatches.feedback), ne(tenderMatches.feedback, "irrelevant"));
-
-function matchQuery(tx: TenantTx, companyId: string) {
-  return tx
-    .select({
-      matchId: tenderMatches.id,
-      score: tenderMatches.score,
-      matchReason: tenderMatches.matchReason,
-      matchedLotCodes: tenderMatches.matchedLotCodes,
-      feedback: tenderMatches.feedback,
-      firstMatchedAt: tenderMatches.firstMatchedAt,
-      profileId: alertProfiles.id,
-      profileName: alertProfiles.name,
-      tenderId: tenders.id,
-      title: tenders.title,
-      status: tenders.status,
-      contractType: tenders.contractType,
-      executionProvinces: tenders.executionProvinces,
-      baseBudgetExVatEur: tenders.baseBudgetExVatEur,
-      submissionDeadlineAt: tenders.submissionDeadlineAt,
-      firstPublishedAt: tenders.firstPublishedAt,
-      authorityName: contractingAuthorities.name,
-      trackedStatus: trackedTenders.workflowStatus,
-    })
-    .from(tenderMatches)
-    .innerJoin(alertProfiles, eq(alertProfiles.id, tenderMatches.alertProfileId))
-    .innerJoin(tenders, eq(tenders.id, tenderMatches.tenderId))
-    .leftJoin(contractingAuthorities, eq(contractingAuthorities.id, tenders.authorityId))
-    .leftJoin(
-      trackedTenders,
-      and(eq(trackedTenders.tenderId, tenders.id), eq(trackedTenders.companyId, companyId)),
-    )
-    .$dynamic();
-}
-
-export function getDashboard(ctx: CompanyContext) {
+export function getDashboard(ctx: OrgContext) {
   return withTenant(ctx.user.id, async (tx) => {
-    const now = new Date();
-    const companyId = ctx.company.id;
-    const weekAgo = new Date(now.getTime() - 7 * DAY);
-    const inTwoWeeks = new Date(now.getTime() + 14 * DAY);
-    const ofCompany = eq(alertProfiles.companyId, companyId);
+    const org = ctx.membership.organization;
+    const town = org.municipalityCode ?? "";
+    const townHall = isTownHall(ctx);
+    const today = madridDayBounds(new Date()).start;
 
-    const [stats] = await tx
-      .select({
-        activeOpportunities: sql<number>`count(distinct ${tenderMatches.tenderId})`.mapWith(Number),
-        newThisWeek:
-          sql<number>`count(distinct ${tenderMatches.tenderId}) filter (where ${tenderMatches.firstMatchedAt} >= ${weekAgo})`.mapWith(
+    const colonyScope = townHall
+      ? eq(colonies.municipalityCode, town)
+      : eq(colonies.organizationId, org.id);
+    const catScope = townHall
+      ? or(eq(cats.municipalityCode, town), eq(colonies.municipalityCode, town))
+      : eq(cats.organizationId, org.id);
+    const actionScope = townHall
+      ? eq(actions.municipalityCode, town)
+      : eq(actions.organizationId, org.id);
+    const open = inArray(actions.status, ["planned", "in_progress"]);
+
+    const [
+      [colonyStats],
+      [catStats],
+      [actionStats],
+      upcoming,
+      recent,
+      [proposalStats],
+      [memberStats],
+    ] = await inSequence([
+      tx
+        .select({
+          total: count(),
+          authorized:
+            sql<number>`count(*) filter (where ${colonies.authorizedAt} is not null)`.mapWith(
+              Number,
+            ),
+        })
+        .from(colonies)
+        .where(colonyScope),
+      tx
+        .select({
+          total: count(),
+          sterilized: sql<number>`count(*) filter (where exists (
+            select 1 from ${actionCats} ac join ${actions} a on a.id = ac.action_id
+            where ac.cat_id = ${cats.id} and a.action_type = 'sterilization' and a.status = 'done'))`.mapWith(
             Number,
           ),
-      })
-      .from(tenderMatches)
-      .innerJoin(alertProfiles, eq(alertProfiles.id, tenderMatches.alertProfileId))
-      .innerJoin(tenders, eq(tenders.id, tenderMatches.tenderId))
-      .where(and(ofCompany, actionable(now), notDismissed));
-
-    const [tracking] = await tx
-      .select({
-        saved:
-          sql<number>`count(*) filter (where ${trackedTenders.workflowStatus} <> 'archived')`.mapWith(
+          withoutColony: sql<number>`count(*) filter (where ${cats.colonyId} is null)`.mapWith(
             Number,
           ),
-        dueSoon:
-          sql<number>`count(*) filter (where ${trackedTenders.workflowStatus} in ('saved','evaluating','preparing') and ${tenders.submissionDeadlineAt} between ${now} and ${inTwoWeeks})`.mapWith(
+        })
+        .from(cats)
+        .leftJoin(colonies, eq(colonies.id, cats.colonyId))
+        .where(catScope),
+      tx
+        .select({
+          open: sql<number>`count(*) filter (where ${open})`.mapWith(Number),
+          urgentOpen: sql<number>`count(*) filter (where ${open} and ${actions.isUrgent})`.mapWith(
             Number,
           ),
-      })
-      .from(trackedTenders)
-      .innerJoin(tenders, eq(tenders.id, trackedTenders.tenderId))
-      .where(eq(trackedTenders.companyId, companyId));
-
-    const [profiles] = await tx
-      .select({
-        total: sql<number>`count(*)`.mapWith(Number),
-        active: sql<number>`count(*) filter (where ${alertProfiles.isActive})`.mapWith(Number),
-      })
-      .from(alertProfiles)
-      .where(ofCompany);
-
-    const newMatches = await matchQuery(tx, companyId)
-      .where(and(ofCompany, actionable(now), notDismissed))
-      .orderBy(
-        desc(sql`date_trunc('day', ${tenderMatches.firstMatchedAt})`),
-        desc(tenderMatches.score),
-      )
-      .limit(8);
-
-    const deadlines = await tx
-      .select({
-        tenderId: tenders.id,
-        title: tenders.title,
-        submissionDeadlineAt: tenders.submissionDeadlineAt,
-        workflowStatus: trackedTenders.workflowStatus,
-      })
-      .from(trackedTenders)
-      .innerJoin(tenders, eq(tenders.id, trackedTenders.tenderId))
-      .where(
-        and(
-          eq(trackedTenders.companyId, companyId),
-          inArray(trackedTenders.workflowStatus, ["saved", "evaluating", "preparing"]),
-          gte(tenders.submissionDeadlineAt, now),
+          pendingValidation: sql<number>`count(*) filter (where ${actions.validatedAt} is null
+            and ${actions.status} <> 'cancelled')`.mapWith(Number),
+          doneThisYear: sql<number>`count(*) filter (where ${actions.status} = 'done'
+            and ${actions.scheduledAt} >= date_trunc('year', now()))`.mapWith(Number),
+        })
+        .from(actions)
+        .where(actionScope),
+      tx
+        .select(actionColumns)
+        .from(actions)
+        .leftJoin(colonies, eq(colonies.id, actions.colonyId))
+        .leftJoin(organizations, eq(organizations.id, actions.organizationId))
+        .where(and(actionScope, open, gte(actions.scheduledAt, today)))
+        .orderBy(desc(actions.isUrgent), asc(actions.scheduledAt))
+        .limit(8),
+      // Town halls: latest actions in the feed waiting for validation.
+      townHall
+        ? tx
+            .select(actionColumns)
+            .from(actions)
+            .leftJoin(colonies, eq(colonies.id, actions.colonyId))
+            .leftJoin(organizations, eq(organizations.id, actions.organizationId))
+            .where(and(actionScope, isNull(actions.validatedAt)))
+            .orderBy(desc(actions.createdAt))
+            .limit(8)
+        : tx
+            .select(actionColumns)
+            .from(actions)
+            .leftJoin(colonies, eq(colonies.id, actions.colonyId))
+            .leftJoin(organizations, eq(organizations.id, actions.organizationId))
+            .where(and(actionScope, isNotNull(actions.validatedAt)))
+            .orderBy(desc(actions.validatedAt))
+            .limit(5),
+      tx
+        .select({ pending: count() })
+        .from(changeProposals)
+        .where(
+          and(
+            eq(changeProposals.status, "pending"),
+            townHall
+              ? eq(changeProposals.proposedByOrganizationId, org.id)
+              : eq(changeProposals.targetOrganizationId, org.id),
+          ),
         ),
-      )
-      .orderBy(tenders.submissionDeadlineAt)
-      .limit(6);
-
-    const alerts = await tx
-      .select({
-        providerMessageId: notificationDeliveries.providerMessageId,
-        notificationType: notificationDeliveries.notificationType,
-        status: notificationDeliveries.status,
-        at: sql<Date>`max(coalesce(${notificationDeliveries.sentAt}, ${notificationDeliveries.lastAttemptAt}, ${notificationDeliveries.scheduledAt}))`.mapWith(
-          (v) => new Date(v),
-        ),
-        tenders: sql<number>`count(${notificationDeliveries.tenderId})`.mapWith(Number),
-        error: sql<string | null>`max(${notificationDeliveries.errorMessage})`,
-      })
-      .from(notificationDeliveries)
-      .where(
-        and(
-          eq(notificationDeliveries.userId, ctx.user.id),
-          eq(notificationDeliveries.companyId, companyId),
-        ),
-      )
-      .groupBy(
-        notificationDeliveries.providerMessageId,
-        notificationDeliveries.notificationType,
-        notificationDeliveries.status,
-        sql`case when ${notificationDeliveries.providerMessageId} is null then ${notificationDeliveries.id} end`,
-      )
-      .orderBy(desc(sql`4`))
-      .limit(5);
+      tx
+        .select({ total: count() })
+        .from(organizationMembers)
+        .where(eq(organizationMembers.organizationId, org.id)),
+    ]);
 
     return {
-      stats: {
-        activeOpportunities: stats?.activeOpportunities ?? 0,
-        newThisWeek: stats?.newThisWeek ?? 0,
-        saved: tracking?.saved ?? 0,
-        dueSoon: tracking?.dueSoon ?? 0,
+      kind: org.kind,
+      colonies: { total: colonyStats?.total ?? 0, authorized: colonyStats?.authorized ?? 0 },
+      cats: {
+        total: catStats?.total ?? 0,
+        sterilized: catStats?.sterilized ?? 0,
+        withoutColony: catStats?.withoutColony ?? 0,
       },
-      profiles: profiles ?? { total: 0, active: 0 },
-      newMatches,
-      deadlines,
-      tasks: await upcomingTasks(tx, companyId, 6),
-      alerts,
-      lastImport: await lastImport(tx),
+      actions: {
+        open: actionStats?.open ?? 0,
+        urgentOpen: actionStats?.urgentOpen ?? 0,
+        pendingValidation: actionStats?.pendingValidation ?? 0,
+        doneThisYear: actionStats?.doneThisYear ?? 0,
+      },
+      upcoming,
+      recent,
+      pendingProposals: proposalStats?.pending ?? 0,
+      members: memberStats?.total ?? 0,
     };
   });
-}
-
-export function listMatches(ctx: CompanyContext, data: MatchListQuery) {
-  return withTenant(ctx.user.id, async (tx) => {
-    const now = new Date();
-    const page = data.page ?? 1;
-    const view = data.view ?? "active";
-    const where = and(
-      eq(alertProfiles.companyId, ctx.company.id),
-      data.profile ? eq(alertProfiles.id, data.profile) : undefined,
-      view === "dismissed" ? eq(tenderMatches.feedback, "irrelevant") : notDismissed,
-      view === "relevant" ? eq(tenderMatches.feedback, "relevant") : undefined,
-      view === "new"
-        ? gte(tenderMatches.firstMatchedAt, new Date(now.getTime() - 7 * DAY))
-        : undefined,
-      view === "dismissed" ? undefined : actionable(now),
-    );
-    const items = await matchQuery(tx, ctx.company.id)
-      .where(where)
-      .orderBy(desc(tenderMatches.score), desc(tenderMatches.firstMatchedAt))
-      .limit(MATCH_PAGE_SIZE)
-      .offset((page - 1) * MATCH_PAGE_SIZE);
-    const [{ total }] = (await tx
-      .select({ total: sql<number>`count(*)`.mapWith(Number) })
-      .from(tenderMatches)
-      .innerJoin(alertProfiles, eq(alertProfiles.id, tenderMatches.alertProfileId))
-      .innerJoin(tenders, eq(tenders.id, tenderMatches.tenderId))
-      .where(where)) as [{ total: number }];
-    const profiles = await tx
-      .select({ id: alertProfiles.id, name: alertProfiles.name })
-      .from(alertProfiles)
-      .where(eq(alertProfiles.companyId, ctx.company.id))
-      .orderBy(alertProfiles.name);
-    return {
-      items,
-      total,
-      page,
-      pageCount: Math.ceil(total / MATCH_PAGE_SIZE),
-      profiles,
-    };
-  });
-}
-
-export function sendTestEmail(ctx: CompanyContext) {
-  return sendTestNotification({ userId: ctx.user.id, companyId: ctx.company.id });
-}
-
-/** Most recent sent emails for the settings page. */
-export function listMyDeliveries(ctx: CompanyContext) {
-  return withTenant(ctx.user.id, (tx) =>
-    tx
-      .select({
-        id: notificationDeliveries.id,
-        notificationType: notificationDeliveries.notificationType,
-        status: notificationDeliveries.status,
-        sentAt: notificationDeliveries.sentAt,
-        scheduledAt: notificationDeliveries.scheduledAt,
-        errorMessage: notificationDeliveries.errorMessage,
-      })
-      .from(notificationDeliveries)
-      .where(
-        and(
-          eq(notificationDeliveries.userId, ctx.user.id),
-          eq(notificationDeliveries.companyId, ctx.company.id),
-          lte(notificationDeliveries.scheduledAt, new Date()),
-        ),
-      )
-      .orderBy(desc(notificationDeliveries.scheduledAt))
-      .limit(20),
-  );
 }

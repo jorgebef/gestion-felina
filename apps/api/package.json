@@ -1,5 +1,5 @@
 {
-  "name": "@licita/api",
+  "name": "@felina/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,12 +12,14 @@
     "start": "node dist/index.mjs"
   },
   "dependencies": {
+    "@felina/core": "workspace:*",
+    "@felina/db": "workspace:*",
+    "@felina/domain": "workspace:*",
+    "@felina/notifications": "workspace:*",
+    "@felina/schemas": "workspace:*",
+    "@felina/storage": "workspace:*",
     "@hono/node-server": "^2.1.5",
     "@hono/zod-validator": "^0.9.1",
-    "@licita/core": "workspace:*",
-    "@licita/db": "workspace:*",
-    "@licita/notifications": "workspace:*",
-    "@licita/schemas": "workspace:*",
     "better-auth": "^1.7.12",
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.13",

@@ -43,7 +43,7 @@ export async function migrate(connectionString: string, log = console.log): Prom
         if (previous !== checksum) log(`! ${version} changed after being applied (ignored)`);
         continue;
       }
-      // The base schema manages its own BEGIN/COMMIT; everything else is wrapped here.
+      // A migration may manage its own BEGIN/COMMIT; otherwise it is wrapped here.
       const managesTransaction = /^\s*BEGIN\s*;/im.test(content);
       try {
         if (!managesTransaction) await client.query("BEGIN");

@@ -3,16 +3,17 @@
 @plugin '@tailwindcss/typography';
 
 @import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
 
-/* Single light theme: a professional B2B tool used during office hours. */
+/* Single light theme, warm neutrals: a field tool used by volunteers and town halls. */
 @custom-variant dark (&:is(.dark *));
 
 :root {
   color-scheme: light;
 
-  --brand: #1f45c9;
-  --brand-strong: #17329a;
-  --brand-soft: #eaf0ff;
+  --brand: #b4530a;
+  --brand-strong: #8a3c06;
+  --brand-soft: #fcefe2;
   --positive: #0f7a43;
   --positive-soft: #e6f5ec;
   --warning: #a8590b;
@@ -20,34 +21,34 @@
   --negative: #c2261d;
   --negative-soft: #fcebea;
 
-  --background: #f6f7f9;
-  --foreground: #0d1526;
+  --background: #f7f6f3;
+  --foreground: #1c1917;
   --card: #ffffff;
-  --card-foreground: #0d1526;
+  --card-foreground: #1c1917;
   --popover: #ffffff;
-  --popover-foreground: #0d1526;
-  --primary: #1f45c9;
+  --popover-foreground: #1c1917;
+  --primary: #b4530a;
   --primary-foreground: #ffffff;
-  --secondary: #eef1f5;
-  --secondary-foreground: #0d1526;
-  --muted: #f1f3f6;
-  --muted-foreground: #5a6476;
-  --accent: #eef1f6;
-  --accent-foreground: #0d1526;
+  --secondary: #f1eee9;
+  --secondary-foreground: #1c1917;
+  --muted: #f2efea;
+  --muted-foreground: #6b625a;
+  --accent: #f2eee8;
+  --accent-foreground: #1c1917;
   --destructive: #c2261d;
   --destructive-foreground: #ffffff;
-  --border: #e2e6ed;
-  --input: #d9dee7;
-  --ring: #1f45c9;
+  --border: #e7e2da;
+  --input: #ddd6cc;
+  --ring: #b4530a;
   --radius: 0.75rem;
   --sidebar: #ffffff;
-  --sidebar-foreground: #0d1526;
-  --sidebar-primary: #1f45c9;
+  --sidebar-foreground: #1c1917;
+  --sidebar-primary: #b4530a;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef2fb;
-  --sidebar-accent-foreground: #17329a;
-  --sidebar-border: #e2e6ed;
-  --sidebar-ring: #1f45c9;
+  --sidebar-accent: #fbefe3;
+  --sidebar-accent-foreground: #8a3c06;
+  --sidebar-border: #e7e2da;
+  --sidebar-ring: #b4530a;
 }
 
 @theme inline {
@@ -127,10 +128,30 @@
   }
 
   .surface {
-    @apply rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(13,21,38,0.04)];
+    @apply rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(28,25,23,0.05)];
   }
 
   .eyebrow {
     @apply text-xs font-medium tracking-[0.08em] text-muted-foreground uppercase;
   }
+}
+
+/* Map markers (Leaflet divIcon) and controls. */
+.map-pin {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: var(--brand);
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(28, 25, 23, 0.45);
+}
+.map-pin[data-tone="muted"] {
+  background: #78716c;
+}
+.map-pin[data-tone="positive"] {
+  background: var(--positive);
+}
+.leaflet-container {
+  font: inherit;
+  background: #eae6df;
 }

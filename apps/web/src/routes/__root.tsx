@@ -2,7 +2,7 @@ import { HeadContent, Link, Scripts, createRootRouteWithContext } from "@tanstac
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 
-import { APP_NAME, Logo } from "@/components/brand/Logo";
+import { APP_NAME, FAVICON, Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,20 +26,17 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "theme-color", content: "#f6f7f9" },
-      { title: `${APP_NAME} · Licitaciones públicas para tu empresa` },
+      { name: "theme-color", content: "#f7f6f3" },
+      { title: `${APP_NAME} · Gestión de colonias felinas` },
       {
         name: "description",
         content:
-          "Encuentra licitaciones públicas en España que encajan con tu empresa y recibe avisos automáticos.",
+          "Plataforma para asociaciones y ayuntamientos: colonias felinas, gatos, castraciones y acciones, coordinadas.",
       },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      {
-        rel: "icon",
-        href: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231f45c9'/><path d='M10 8h9l4 4v12H10z' fill='white'/></svg>",
-      },
+      { rel: "icon", href: FAVICON },
     ],
   }),
   shellComponent: RootDocument,
@@ -56,7 +53,7 @@ function NotFound() {
         <p className="tabular text-5xl font-semibold tracking-tight">404</p>
         <h1 className="text-lg font-medium">Página no encontrada</h1>
         <p className="text-sm text-muted-foreground">
-          El enlace no existe o la licitación ya no está disponible.
+          El enlace no existe o ya no tienes acceso a este contenido.
         </p>
         <Button asChild>
           <Link to="/">Volver al inicio</Link>
@@ -77,7 +74,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <Toaster position="bottom-right" richColors closeButton />
         {import.meta.env.DEV ? (
           <TanStackDevtools
-            config={{ position: "bottom-left" }}
+            config={{ position: "middle-left" }}
             plugins={[
               { name: "Tanstack Router", render: <TanStackRouterDevtoolsPanel /> },
               TanStackQueryDevtools,

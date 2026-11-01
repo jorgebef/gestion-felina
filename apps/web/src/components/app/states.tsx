@@ -119,3 +119,30 @@ export function DefaultCatchBoundary({ error, reset }: ErrorComponentProps) {
     </div>
   );
 }
+
+export function ForbiddenState({
+  message = "No tienes permiso para ver o hacer esto.",
+}: {
+  message?: string;
+}) {
+  return (
+    <div className="flex flex-col items-center rounded-xl border border-dashed bg-card px-6 py-12 text-center">
+      <AlertTriangle className="mb-3 size-6 text-warning" />
+      <p className="font-medium">{message}</p>
+    </div>
+  );
+}
+
+/** Two-column label/value list used on detail pages. */
+export function Facts({ items }: { items: { label: string; value: ReactNode }[] }) {
+  return (
+    <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+      {items.map((item) => (
+        <div key={item.label} className="min-w-0">
+          <dt className="text-xs text-muted-foreground">{item.label}</dt>
+          <dd className="mt-0.5 break-words">{item.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}

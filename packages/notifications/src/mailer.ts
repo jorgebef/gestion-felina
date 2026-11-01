@@ -111,3 +111,17 @@ export function getMailer(): Mailer {
 export function setMailer(mailer: Mailer | undefined): void {
   instance = mailer;
 }
+
+/**
+ * Sends without failing the caller: used for emails triggered by a user action
+ * (invitations, reviews, proposals), where the action itself already succeeded.
+ */
+export async function sendSafely(message: EmailMessage): Promise<boolean> {
+  try {
+    await getMailer().send(message);
+    return true;
+  } catch (error) {
+    console.error(`[email] could not send "${message.subject}" to ${message.to}`, error);
+    return false;
+  }
+}

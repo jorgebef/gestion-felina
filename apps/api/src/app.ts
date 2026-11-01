@@ -3,7 +3,7 @@
  * clients (a future mobile app, scripts) can call it directly.
  *
  *   /api/auth/*   Better Auth (email + password, Google, password reset)
- *   /api/v1/*     application API, typed for `@licita/api-client`
+ *   /api/v1/*     application API, typed for `@felina/api-client`
  *   /health       liveness probe
  */
 import { Hono } from "hono";
@@ -13,35 +13,36 @@ import { csrf } from "hono/csrf";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 
+import { MAX_PHOTO_BYTES } from "@felina/schemas/cat";
+
 import { auth } from "./auth.ts";
 import { apiEnv } from "./env.ts";
 import { errorResponse, handleError } from "./errors.ts";
-import { meRoutes, companyRoutes, publicRoutes } from "./routes/account.ts";
-import { alertProfileRoutes, cpvRoutes } from "./routes/alerts.ts";
-import { dashboardRoutes, matchRoutes, notificationRoutes } from "./routes/dashboard.ts";
 import {
-  authorityRoutes,
-  importRoutes,
-  taskRoutes,
-  tenderRoutes,
-  trackedRoutes,
-} from "./routes/tenders.ts";
+  invitationRoutes,
+  meRoutes,
+  municipalityRoutes,
+  organizationRoutes,
+  publicRoutes,
+} from "./routes/account.ts";
+import { actionRoutes, dashboardRoutes } from "./routes/actions.ts";
+import { adminRoutes } from "./routes/admin.ts";
+import { catRoutes, colonyRoutes, proposalRoutes, uploadRoutes } from "./routes/colonies.ts";
 
-/** Application API mounted at /api/v1. Its type drives `@licita/api-client`. */
+/** Application API mounted at /api/v1. Its type drives `@felina/api-client`. */
 export const v1Routes = new Hono()
   .route("/public", publicRoutes)
   .route("/me", meRoutes)
-  .route("/companies", companyRoutes)
-  .route("/alert-profiles", alertProfileRoutes)
-  .route("/cpv", cpvRoutes)
-  .route("/tenders", tenderRoutes)
-  .route("/authorities", authorityRoutes)
-  .route("/imports", importRoutes)
-  .route("/tracked", trackedRoutes)
-  .route("/tasks", taskRoutes)
+  .route("/organizations", organizationRoutes)
+  .route("/invitations", invitationRoutes)
+  .route("/municipalities", municipalityRoutes)
+  .route("/colonies", colonyRoutes)
+  .route("/cats", catRoutes)
+  .route("/uploads", uploadRoutes)
+  .route("/actions", actionRoutes)
+  .route("/proposals", proposalRoutes)
   .route("/dashboard", dashboardRoutes)
-  .route("/matches", matchRoutes)
-  .route("/notifications", notificationRoutes);
+  .route("/admin", adminRoutes);
 
 export type ApiRoutes = typeof v1Routes;
 
@@ -65,7 +66,12 @@ export function createApp(options: { log?: boolean } = {}) {
   // Cross-origin browser clients must be listed; same-origin calls via the proxy pass.
   app.use("/api/*", cors({ origin: origins, credentials: true }));
   app.use("/api/*", csrf({ origin: origins }));
-  app.use("/api/*", bodyLimit({ maxSize: 1024 * 1024 }));
+  // 1 MB per request, except photo uploads.
+  const photoLimit = bodyLimit({ maxSize: MAX_PHOTO_BYTES + 64 * 1024 });
+  const defaultLimit = bodyLimit({ maxSize: 1024 * 1024 });
+  app.use("/api/*", (c, next) =>
+    c.req.path === "/api/v1/uploads/photos" ? photoLimit(c, next) : defaultLimit(c, next),
+  );
 
   app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
   app.route("/api/v1", v1Routes);

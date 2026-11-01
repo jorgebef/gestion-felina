@@ -6,7 +6,7 @@
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 
-import { createApi, type Api, type ApiData } from "@licita/api-client";
+import { createApi, type Api, type ApiData } from "@felina/api-client";
 
 import { apiOrigin } from "./api-origin";
 
@@ -27,5 +27,5 @@ export const api = createIsomorphicFn()
     return browserApi;
   });
 
-/** Signed-in user and active company (see `GET /api/v1/me`). */
+/** Signed-in user, platform-admin flag and organization (see `GET /api/v1/me`). */
 export type Viewer = NonNullable<ApiData<Api["me"]["get"]>>;

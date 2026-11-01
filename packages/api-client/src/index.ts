@@ -1,24 +1,28 @@
 /**
- * Typed client for the Licita API (`/api/v1`). Request and response types come from
+ * Typed client for the GestiónFelina API (`/api/v1`). Request and response types come from
  * the Hono routes in apps/api, so a change there is a type error here and in every
  * caller. Dates arrive as ISO strings, exactly as they travel over JSON.
  *
  *   const api = createApi({ baseUrl: "https://app.example.es" });
- *   const { items } = await api.tenders.search({ q: "limpieza" });
+ *   const colonies = await api.colonies.list({ q: "parque" });
  */
 import { hc, type ClientResponse, type InferRequestType } from "hono/client";
 
-import type { ApiRoutes } from "@licita/api";
-import type { WorkflowStatusValue } from "@licita/domain/tenders";
-import type { MatchListQuery } from "@licita/schemas/matches";
-import type { TenderSearch } from "@licita/schemas/tender-search";
+import type { ApiRoutes } from "@felina/api";
+import type { ActionStatus, ProposalStatus } from "@felina/domain/felina";
+import type { ActionListQuery } from "@felina/schemas/action";
+import type { CatListQuery } from "@felina/schemas/cat";
+import type { ColonyListQuery } from "@felina/schemas/colony";
+import type { OrganizationListQuery } from "@felina/schemas/organization";
 
 export type ErrorCode =
   | "UNAUTHORIZED"
-  | "NO_COMPANY"
+  | "NO_ORGANIZATION"
+  | "ORGANIZATION_NOT_APPROVED"
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "VALIDATION"
+  | "CONFLICT"
   | "RATE_LIMITED"
   | "INTERNAL"
   | "NETWORK";
@@ -84,88 +88,131 @@ function toQuery<T extends object>(params: T): Record<string, string> {
   return query;
 }
 
+/** JSON body accepted by a raw client method. */
+type Body<F> = Json<InferRequestType<F>>;
+
 export function createApi(options: ApiOptions) {
   const c: RawClient = createRawClient(options);
+  const base = `${options.baseUrl.replace(/\/$/, "")}/api/v1`;
+  const doFetch = options.fetch ?? fetch;
+
   return {
     public: {
-      stats: () => unwrap(c.public.stats.$get()),
       authConfig: () => unwrap(c.public["auth-config"].$get()),
+      invitation: (token: string) =>
+        unwrap(c.public.invitations[":token"].$get({ param: { token } })),
     },
     me: {
-      /** Signed-in user and active company, or null when anonymous. */
+      /** Signed-in user, platform-admin flag and organization, or null when anonymous. */
       get: () => unwrap(c.me.$get()),
-      update: (json: Json<InferRequestType<RawClient["me"]["$patch"]>>) =>
-        unwrap(c.me.$patch({ json })),
+      update: (json: Body<RawClient["me"]["$patch"]>) => unwrap(c.me.$patch({ json })),
     },
-    companies: {
-      create: (json: Json<InferRequestType<RawClient["companies"]["$post"]>>) =>
-        unwrap(c.companies.$post({ json })),
-      current: () => unwrap(c.companies.current.$get()),
-      updateCurrent: (json: Json<InferRequestType<RawClient["companies"]["current"]["$patch"]>>) =>
-        unwrap(c.companies.current.$patch({ json })),
+    organizations: {
+      register: (json: Body<RawClient["organizations"]["$post"]>) =>
+        unwrap(c.organizations.$post({ json })),
+      current: () => unwrap(c.organizations.current.$get()),
+      updateCurrent: (json: Body<RawClient["organizations"]["current"]["$patch"]>) =>
+        unwrap(c.organizations.current.$patch({ json })),
+      members: () => unwrap(c.organizations.current.members.$get()),
+      setMemberRole: (id: string, role: "admin" | "member") =>
+        unwrap(c.organizations.current.members[":id"].$patch({ param: { id }, json: { role } })),
+      removeMember: (id: string) =>
+        unwrap(c.organizations.current.members[":id"].$delete({ param: { id } })),
+      invitations: () => unwrap(c.organizations.current.invitations.$get()),
+      invite: (json: Body<RawClient["organizations"]["current"]["invitations"]["$post"]>) =>
+        unwrap(c.organizations.current.invitations.$post({ json })),
     },
-    alertProfiles: {
-      list: () => unwrap(c["alert-profiles"].$get()),
-      get: (id: string) => unwrap(c["alert-profiles"][":id"].$get({ param: { id } })),
-      create: (json: Json<InferRequestType<RawClient["alert-profiles"]["$post"]>>) =>
-        unwrap(c["alert-profiles"].$post({ json })),
-      update: (
-        id: string,
-        json: Json<InferRequestType<RawClient["alert-profiles"][":id"]["$put"]>>,
-      ) => unwrap(c["alert-profiles"][":id"].$put({ param: { id }, json })),
-      setActive: (id: string, isActive: boolean) =>
-        unwrap(c["alert-profiles"][":id"].active.$patch({ param: { id }, json: { isActive } })),
-      delete: (id: string) => unwrap(c["alert-profiles"][":id"].$delete({ param: { id } })),
+    invitations: {
+      accept: (token: string) => unwrap(c.invitations[":token"].accept.$post({ param: { token } })),
+      revoke: (id: string) => unwrap(c.invitations[":id"].$delete({ param: { id } })),
     },
-    cpv: {
-      search: (q: string) => unwrap(c.cpv.$get({ query: { q } })),
-      suggest: (json: Json<InferRequestType<RawClient["cpv"]["suggestions"]["$post"]>>) =>
-        unwrap(c.cpv.suggestions.$post({ json })),
+    municipalities: {
+      search: (q: string) => unwrap(c.municipalities.$get({ query: { q } })),
+      get: (code: string) => unwrap(c.municipalities[":code"].$get({ param: { code } })),
     },
-    tenders: {
-      search: (search: TenderSearch) => unwrap(c.tenders.$get({ query: toQuery(search) })),
-      get: (id: string) => unwrap(c.tenders[":id"].$get({ param: { id } })),
-      tracking: (id: string) => unwrap(c.tenders[":id"].tracking.$get({ param: { id } })),
-      track: (id: string) => unwrap(c.tenders[":id"].tracking.$put({ param: { id } })),
-      untrack: (id: string) => unwrap(c.tenders[":id"].tracking.$delete({ param: { id } })),
+    colonies: {
+      list: (query: ColonyListQuery = {}) => unwrap(c.colonies.$get({ query: toQuery(query) })),
+      options: () => unwrap(c.colonies.options.$get()),
+      get: (id: string) => unwrap(c.colonies[":id"].$get({ param: { id } })),
+      create: (json: Body<RawClient["colonies"]["$post"]>) => unwrap(c.colonies.$post({ json })),
+      update: (id: string, json: Body<RawClient["colonies"][":id"]["$put"]>) =>
+        unwrap(c.colonies[":id"].$put({ param: { id }, json })),
+      delete: (id: string) => unwrap(c.colonies[":id"].$delete({ param: { id } })),
+      setAuthorization: (id: string, authorized: boolean) =>
+        unwrap(c.colonies[":id"].authorization.$put({ param: { id }, json: { authorized } })),
+      propose: (id: string, json: Body<RawClient["colonies"][":id"]["proposals"]["$post"]>) =>
+        unwrap(c.colonies[":id"].proposals.$post({ param: { id }, json })),
     },
-    authorities: {
-      search: (q: string) => unwrap(c.authorities.$get({ query: { q } })),
+    cats: {
+      list: (query: CatListQuery = {}) => unwrap(c.cats.$get({ query: toQuery(query) })),
+      get: (id: string) => unwrap(c.cats[":id"].$get({ param: { id } })),
+      create: (json: Body<RawClient["cats"]["$post"]>) => unwrap(c.cats.$post({ json })),
+      update: (id: string, json: Body<RawClient["cats"][":id"]["$put"]>) =>
+        unwrap(c.cats[":id"].$put({ param: { id }, json })),
+      delete: (id: string) => unwrap(c.cats[":id"].$delete({ param: { id } })),
+      propose: (id: string, json: Body<RawClient["cats"][":id"]["proposals"]["$post"]>) =>
+        unwrap(c.cats[":id"].proposals.$post({ param: { id }, json })),
+      /** URL of the main photo; `version` (e.g. updatedAt) busts the browser cache. */
+      photoUrl: (id: string, version?: string) =>
+        `${base}/cats/${id}/photo${version ? `?v=${encodeURIComponent(version)}` : ""}`,
+      /** Uploads a photo and returns the `photoKey` to send with the cat. */
+      uploadPhoto: async (file: Blob): Promise<{ photoKey: string }> => {
+        const form = new FormData();
+        form.append("file", file);
+        const headers = (await options.headers?.()) ?? {};
+        return unwrap(
+          doFetch(`${base}/uploads/photos`, {
+            method: "POST",
+            body: form,
+            headers,
+            credentials: "include",
+          }) as unknown as Promise<ClientResponse<{ photoKey: string }>>,
+        );
+      },
     },
-    imports: {
-      latest: () => unwrap(c.imports.latest.$get()),
+    actions: {
+      list: (query: Partial<ActionListQuery> = {}) =>
+        unwrap(c.actions.$get({ query: toQuery(query) })),
+      catOptions: () => unwrap(c.actions["cat-options"].$get()),
+      get: (id: string) => unwrap(c.actions[":id"].$get({ param: { id } })),
+      create: (json: Body<RawClient["actions"]["$post"]>) => unwrap(c.actions.$post({ json })),
+      update: (id: string, json: Body<RawClient["actions"][":id"]["$put"]>) =>
+        unwrap(c.actions[":id"].$put({ param: { id }, json })),
+      setStatus: (id: string, status: ActionStatus) =>
+        unwrap(c.actions[":id"].status.$patch({ param: { id }, json: { status } })),
+      delete: (id: string) => unwrap(c.actions[":id"].$delete({ param: { id } })),
+      setValidation: (id: string, validated: boolean) =>
+        unwrap(c.actions[":id"].validation.$put({ param: { id }, json: { validated } })),
     },
-    tracked: {
-      list: (filter: { status?: WorkflowStatusValue }) =>
-        unwrap(c.tracked.$get({ query: toQuery(filter) })),
-      update: (id: string, json: Json<InferRequestType<RawClient["tracked"][":id"]["$patch"]>>) =>
-        unwrap(c.tracked[":id"].$patch({ param: { id }, json })),
-      createTask: (
-        id: string,
-        json: Json<InferRequestType<RawClient["tracked"][":id"]["tasks"]["$post"]>>,
-      ) => unwrap(c.tracked[":id"].tasks.$post({ param: { id }, json })),
-    },
-    tasks: {
-      setCompleted: (id: string, completed: boolean) =>
-        unwrap(c.tasks[":id"].$patch({ param: { id }, json: { completed } })),
-      delete: (id: string) => unwrap(c.tasks[":id"].$delete({ param: { id } })),
+    proposals: {
+      list: (query: { status?: ProposalStatus; colonyId?: string; catId?: string } = {}) =>
+        unwrap(c.proposals.$get({ query: toQuery(query) })),
+      resolve: (id: string, json: Body<RawClient["proposals"][":id"]["resolve"]["$post"]>) =>
+        unwrap(c.proposals[":id"].resolve.$post({ param: { id }, json })),
+      withdraw: (id: string) => unwrap(c.proposals[":id"].withdraw.$post({ param: { id } })),
     },
     dashboard: {
       get: () => unwrap(c.dashboard.$get()),
     },
-    matches: {
-      list: (filter: MatchListQuery) => unwrap(c.matches.$get({ query: toQuery(filter) })),
-      setFeedback: (id: string, feedback: "relevant" | "irrelevant" | null) =>
-        unwrap(c.matches[":id"].feedback.$patch({ param: { id }, json: { feedback } })),
-    },
-    notifications: {
-      list: () => unwrap(c.notifications.$get()),
-      sendTest: () => unwrap(c.notifications.test.$post()),
+    admin: {
+      organizations: (query: OrganizationListQuery = {}) =>
+        unwrap(c.admin.organizations.$get({ query: toQuery(query) })),
+      organization: (id: string) => unwrap(c.admin.organizations[":id"].$get({ param: { id } })),
+      review: (
+        id: string,
+        json: Body<RawClient["admin"]["organizations"][":id"]["review"]["$post"]>,
+      ) => unwrap(c.admin.organizations[":id"].review.$post({ param: { id }, json })),
+      invite: (
+        id: string,
+        json: Body<RawClient["admin"]["organizations"][":id"]["invitations"]["$post"]>,
+      ) => unwrap(c.admin.organizations[":id"].invitations.$post({ param: { id }, json })),
+      createTownHall: (json: Body<RawClient["admin"]["town-halls"]["$post"]>) =>
+        unwrap(c.admin["town-halls"].$post({ json })),
     },
   };
 }
 
 export type Api = ReturnType<typeof createApi>;
 
-/** Resolved response type of an API method, e.g. `ApiData<Api["tenders"]["get"]>`. */
+/** Resolved response type of an API method, e.g. `ApiData<Api["cats"]["get"]>`. */
 export type ApiData<F extends (...args: never[]) => Promise<unknown>> = Awaited<ReturnType<F>>;

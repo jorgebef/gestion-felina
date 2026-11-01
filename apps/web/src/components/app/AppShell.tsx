@@ -1,18 +1,22 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
-  BellRing,
-  Bookmark,
-  Building2,
+  Cat,
+  ClipboardList,
+  GitPullRequestArrow,
   LayoutDashboard,
   LogOut,
+  MapPinned,
   Menu,
-  Search,
+  Newspaper,
   Settings,
-  Target,
+  ShieldCheck,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+
+import { ORGANIZATION_KIND_LABELS } from "@felina/domain/felina";
 
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
@@ -35,31 +39,50 @@ import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import type { Viewer } from "@/lib/api";
 
+type NavTarget =
+  | "/panel"
+  | "/feed"
+  | "/colonias"
+  | "/gatos"
+  | "/acciones"
+  | "/propuestas"
+  | "/equipo"
+  | "/ajustes"
+  | "/admin";
+
 interface NavItem {
-  to:
-    | "/dashboard"
-    | "/oportunidades"
-    | "/licitaciones"
-    | "/mis-licitaciones"
-    | "/alertas"
-    | "/ajustes";
+  to: NavTarget;
   label: string;
   icon: LucideIcon;
 }
 
-const NAV: NavItem[] = [
-  { to: "/dashboard", label: "Panel", icon: LayoutDashboard },
-  { to: "/oportunidades", label: "Oportunidades", icon: Target },
-  { to: "/licitaciones", label: "Buscador", icon: Search },
-  { to: "/mis-licitaciones", label: "Mis licitaciones", icon: Bookmark },
-  { to: "/alertas", label: "Alertas", icon: BellRing },
-  { to: "/ajustes", label: "Ajustes", icon: Settings },
-];
+function navFor(viewer: Viewer): NavItem[] {
+  const kind = viewer.membership?.organization.kind;
+  const items: NavItem[] = [];
+  if (viewer.membership?.organization.status === "approved") {
+    items.push({ to: "/panel", label: "Panel", icon: LayoutDashboard });
+    if (kind === "town_hall")
+      items.push({ to: "/feed", label: "Feed de acciones", icon: Newspaper });
+    items.push(
+      { to: "/colonias", label: "Colonias", icon: MapPinned },
+      { to: "/gatos", label: "Gatos", icon: Cat },
+    );
+    if (kind === "association")
+      items.push({ to: "/acciones", label: "Acciones", icon: ClipboardList });
+    items.push(
+      { to: "/propuestas", label: "Propuestas", icon: GitPullRequestArrow },
+      { to: "/equipo", label: "Equipo", icon: Users },
+      { to: "/ajustes", label: "Ajustes", icon: Settings },
+    );
+  }
+  if (viewer.isPlatformAdmin) items.push({ to: "/admin", label: "Superadmin", icon: ShieldCheck });
+  return items;
+}
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({ viewer, onNavigate }: { viewer: Viewer; onNavigate?: () => void }) {
   return (
     <nav aria-label="Principal" className="grid gap-0.5">
-      {NAV.map((item) => (
+      {navFor(viewer).map((item) => (
         <Link
           key={item.to}
           to={item.to}
@@ -107,7 +130,7 @@ function UserMenu({ viewer, compact = false }: { viewer: Viewer; compact?: boole
           {!compact ? (
             <span className="min-w-0">
               <span className="block truncate text-sm font-medium">
-                {viewer.company?.name ?? "Sin empresa"}
+                {viewer.membership?.organization.name ?? "Sin organización"}
               </span>
               <span className="block truncate text-xs text-muted-foreground">
                 {viewer.user.email}
@@ -122,14 +145,22 @@ function UserMenu({ viewer, compact = false }: { viewer: Viewer; compact?: boole
             {viewer.user.name || "Mi cuenta"}
           </span>
           <span className="block truncate text-xs text-muted-foreground">{viewer.user.email}</span>
+          {viewer.membership ? (
+            <span className="mt-1 block truncate text-xs text-muted-foreground">
+              {ORGANIZATION_KIND_LABELS[viewer.membership.organization.kind]} ·{" "}
+              {viewer.membership.organization.name}
+            </span>
+          ) : null}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/ajustes">
-            <Building2 />
-            Empresa y cuenta
-          </Link>
-        </DropdownMenuItem>
+        {viewer.membership?.organization.status === "approved" ? (
+          <DropdownMenuItem asChild>
+            <Link to="/ajustes">
+              <Settings />
+              Ajustes
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem onSelect={() => void signOut()}>
           <LogOut />
           Cerrar sesión
@@ -144,10 +175,10 @@ export function AppShell({ viewer, children }: { viewer: Viewer; children: React
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[248px_1fr]">
       <aside className="sticky top-0 hidden h-screen flex-col border-r bg-sidebar px-3 py-4 lg:flex">
-        <Link to="/dashboard" className="mb-6 px-2" aria-label="Ir al panel">
+        <Link to="/" className="mb-6 px-2" aria-label="Ir al panel">
           <Logo />
         </Link>
-        <NavLinks />
+        <NavLinks viewer={viewer} />
         <div className="mt-auto border-t pt-3">
           <UserMenu viewer={viewer} />
         </div>
@@ -167,14 +198,14 @@ export function AppShell({ viewer, children }: { viewer: Viewer; children: React
               </SheetTitle>
               <SheetDescription className="sr-only">Navegación principal</SheetDescription>
               <div className="mt-5">
-                <NavLinks onNavigate={() => setOpen(false)} />
+                <NavLinks viewer={viewer} onNavigate={() => setOpen(false)} />
               </div>
               <div className="mt-auto border-t pt-3">
                 <UserMenu viewer={viewer} />
               </div>
             </SheetContent>
           </Sheet>
-          <Link to="/dashboard" aria-label="Ir al panel">
+          <Link to="/panel" aria-label="Ir al panel">
             <Logo />
           </Link>
           <UserMenu viewer={viewer} compact />

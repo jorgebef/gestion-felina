@@ -12,7 +12,7 @@ const schema = z.object({
   /** `resend` sends real email; `console` logs it (development); `disabled` drops it. */
   EMAIL_PROVIDER: z.enum(["resend", "console", "disabled"]).default("console"),
   RESEND_API_KEY: optional,
-  EMAIL_FROM: z.string().default("Licita <avisos@example.com>"),
+  EMAIL_FROM: z.string().default("GestiónFelina <avisos@example.com>"),
 });
 
 export type NotificationsEnv = z.infer<typeof schema>;

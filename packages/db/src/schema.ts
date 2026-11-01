@@ -1,5 +1,5 @@
 /**
- * Drizzle mapping of the SQL schema in db/migrations. The SQL files are the source of
+ * Drizzle mapping of the SQL schema in ../migrations. The SQL files are the source of
  * truth (they also hold RLS policies, triggers and generated columns); this file only
  * gives the query builder typed access to the same tables and must be kept in sync.
  */
@@ -7,42 +7,47 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   char,
-  customType,
+  date,
+  doublePrecision,
   integer,
   jsonb,
-  numeric,
   pgTable,
   primaryKey,
   text,
   timestamp,
-  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+import type {
+  ActionStatus,
+  ActionType,
+  CatSex,
+  MemberRole,
+  OrganizationKind,
+  OrganizationStatus,
+  ProposalStatus,
+  ProposalTarget,
+} from "@felina/domain/felina";
 
 /** JSON values as stored in jsonb columns (serializable as JSON over the API). */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json | undefined };
 export type JsonObject = { [key: string]: Json | undefined };
+/** Field → value of a change proposal (all proposable fields are scalars). */
+export type ChangeSet = Record<string, string | number | boolean | null>;
 
-const tsvector = customType<{ data: string }>({ dataType: () => "tsvector" });
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
-const euros = (name: string) => numeric(name, { precision: 16, scale: 2, mode: "number" });
-const textArray = (name: string) =>
-  text(name)
-    .array()
-    .notNull()
-    .default(sql`'{}'`);
+const municipality = (name: string) => char(name, { length: 5 });
 
 /* --------------------------------- People --------------------------------- */
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull(),
-  // Better Auth maps its `name` field here (see src/lib/auth.ts).
+  // Better Auth maps its `name` field here (see apps/api/src/auth.ts).
   fullName: text("full_name"),
-  locale: text("locale").notNull().default("es"),
-  timezone: text("timezone").notNull().default("Europe/Madrid"),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  isPlatformAdmin: boolean("is_platform_admin").notNull().default(false),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
@@ -87,317 +92,198 @@ export const authVerifications = pgTable("auth_verifications", {
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
-/* -------------------------------- Companies ------------------------------- */
+/* ------------------------------ Municipalities ---------------------------- */
 
-export const companies = pgTable("companies", {
+export const municipalities = pgTable("municipalities", {
+  code: municipality("code").primaryKey(),
+  provinceCode: char("province_code", { length: 2 }).notNull(),
+  name: text("name").notNull(),
+  officialName: text("official_name").notNull(),
+  searchName: text("search_name"),
+});
+
+/* ------------------------------ Organizations ----------------------------- */
+
+export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
-  legalName: text("legal_name").notNull(),
-  displayName: text("display_name"),
+  kind: text("kind").$type<OrganizationKind>().notNull(),
+  name: text("name").notNull(),
   taxId: text("tax_id"),
-  businessDescription: text("business_description"),
-  companyType: text("company_type"),
-  baseProvinceCode: char("base_province_code", { length: 2 }),
-  baseMunicipality: text("base_municipality"),
+  municipalityCode: municipality("municipality_code").references(() => municipalities.code),
+  description: text("description"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  status: text("status").$type<OrganizationStatus>().notNull().default("pending"),
+  reviewNote: text("review_note"),
+  reviewedAt: ts("reviewed_at"),
+  reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
-export type MemberRole = "owner" | "admin" | "member";
+export const organizationMembers = pgTable("organization_members", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  role: text("role").$type<MemberRole>().notNull().default("member"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
 
-export const companyMembers = pgTable(
-  "company_members",
+export const organizationInvitations = pgTable("organization_invitations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: text("role").$type<MemberRole>().notNull().default("member"),
+  tokenHash: text("token_hash").notNull().unique(),
+  invitedBy: uuid("invited_by").references(() => users.id, { onDelete: "set null" }),
+  expiresAt: ts("expires_at").notNull(),
+  acceptedAt: ts("accepted_at"),
+  acceptedBy: uuid("accepted_by").references(() => users.id, { onDelete: "set null" }),
+  revokedAt: ts("revoked_at"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+/* ------------------------------ Colonies and cats ------------------------- */
+
+export const colonies = pgTable("colonies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  latitude: doublePrecision("latitude").notNull(),
+  longitude: doublePrecision("longitude").notNull(),
+  municipalityCode: municipality("municipality_code")
+    .notNull()
+    .references(() => municipalities.code),
+  address: text("address"),
+  authorizedAt: ts("authorized_at"),
+  authorizedBy: uuid("authorized_by").references(() => users.id, { onDelete: "set null" }),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const cats = pgTable("cats", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  colonyId: uuid("colony_id").references(() => colonies.id, { onDelete: "set null" }),
+  name: text("name"),
+  sex: text("sex").$type<CatSex>().notNull().default("unknown"),
+  /** `YYYY-MM-DD`, or null when unknown. */
+  birthDate: date("birth_date", { mode: "string" }),
+  birthDateApproximate: boolean("birth_date_approximate").notNull().default(false),
+  description: text("description"),
+  photoKey: text("photo_key").notNull(),
+  latitude: doublePrecision("latitude").notNull(),
+  longitude: doublePrecision("longitude").notNull(),
+  municipalityCode: municipality("municipality_code")
+    .notNull()
+    .references(() => municipalities.code),
+  address: text("address"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+/* --------------------------------- Actions -------------------------------- */
+
+export const actions = pgTable("actions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  colonyId: uuid("colony_id").references(() => colonies.id, { onDelete: "set null" }),
+  municipalityCode: municipality("municipality_code")
+    .notNull()
+    .references(() => municipalities.code),
+  actionType: text("action_type").$type<ActionType>().notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  scheduledAt: ts("scheduled_at").notNull(),
+  isUrgent: boolean("is_urgent").notNull().default(false),
+  status: text("status").$type<ActionStatus>().notNull().default("planned"),
+  validatedAt: ts("validated_at"),
+  validatedBy: uuid("validated_by").references(() => users.id, { onDelete: "set null" }),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const actionCats = pgTable(
+  "action_cats",
   {
-    companyId: uuid("company_id")
+    actionId: uuid("action_id")
       .notNull()
-      .references(() => companies.id, { onDelete: "cascade" }),
+      .references(() => actions.id, { onDelete: "cascade" }),
+    catId: uuid("cat_id")
+      .notNull()
+      .references(() => cats.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.actionId, t.catId] })],
+);
+
+export const actionParticipants = pgTable(
+  "action_participants",
+  {
+    actionId: uuid("action_id")
+      .notNull()
+      .references(() => actions.id, { onDelete: "cascade" }),
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    role: text("role").$type<MemberRole>().notNull().default("member"),
-    createdAt: ts("created_at").notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.companyId, t.userId] })],
+  (t) => [primaryKey({ columns: [t.actionId, t.userId] })],
 );
 
-export type EmailFrequency = "instant" | "daily" | "weekly" | "off";
+/* ----------------------------- Change proposals --------------------------- */
 
-export const alertProfiles = pgTable("alert_profiles", {
+export const changeProposals = pgTable("change_proposals", {
   id: uuid("id").primaryKey().defaultRandom(),
-  companyId: uuid("company_id")
+  targetType: text("target_type").$type<ProposalTarget>().notNull(),
+  colonyId: uuid("colony_id").references(() => colonies.id, { onDelete: "cascade" }),
+  catId: uuid("cat_id").references(() => cats.id, { onDelete: "cascade" }),
+  // Filled in by a BEFORE INSERT trigger from the target; never written by the application
+  // (the `default` only makes it optional for inserts: the column has no SQL default).
+  targetOrganizationId: uuid("target_organization_id")
     .notNull()
-    .references(() => companies.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  serviceDescription: text("service_description").notNull(),
-  cpvCodes: textArray("cpv_codes"),
-  includeKeywords: textArray("include_keywords"),
-  excludeKeywords: textArray("exclude_keywords"),
-  provinceCodes: textArray("province_codes"),
-  nationwide: boolean("nationwide").notNull().default(false),
-  contractTypes: textArray("contract_types"),
-  minBudgetEur: euros("min_budget_eur"),
-  maxBudgetEur: euros("max_budget_eur"),
-  emailFrequency: text("email_frequency").$type<EmailFrequency>().notNull().default("daily"),
-  isActive: boolean("is_active").notNull().default(true),
-  sectors: textArray("sectors"),
-  createdAt: ts("created_at").notNull().defaultNow(),
-  updatedAt: ts("updated_at").notNull().defaultNow(),
-});
-
-/* ------------------------------ Public tenders ---------------------------- */
-
-export const contractingAuthorities = pgTable("contracting_authorities", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  placspAuthorityId: text("placsp_authority_id"),
-  taxId: text("tax_id"),
-  administrationType: text("administration_type"),
-  provinceCode: char("province_code", { length: 2 }),
-  municipality: text("municipality"),
-  parentAuthorityId: uuid("parent_authority_id"),
-  profileUrl: text("profile_url"),
+    .default(sql`null`),
+  proposedByOrganizationId: uuid("proposed_by_organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  proposedBy: uuid("proposed_by").references(() => users.id, { onDelete: "set null" }),
+  changes: jsonb("changes").$type<ChangeSet>().notNull(),
+  previousValues: jsonb("previous_values").$type<ChangeSet>().notNull().default({}),
+  message: text("message"),
+  status: text("status").$type<ProposalStatus>().notNull().default("pending"),
+  resolutionNote: text("resolution_note"),
+  resolvedAt: ts("resolved_at"),
+  resolvedBy: uuid("resolved_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: ts("created_at").notNull().defaultNow(),
 });
 
-export type TenderStatus =
-  | "planned"
-  | "open"
-  | "closed"
-  | "awarded"
-  | "formalized"
-  | "cancelled"
-  | "suspended"
-  | "unknown";
-
-export const tenders = pgTable("tenders", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  authorityId: uuid("authority_id").references(() => contractingAuthorities.id),
-  expedienteNumber: text("expediente_number"),
-  title: text("title").notNull(),
-  description: text("description"),
-  contractType: text("contract_type"),
-  procedureType: text("procedure_type"),
-  status: text("status").$type<TenderStatus>().notNull().default("unknown"),
-  mainCpvCode: text("main_cpv_code"),
-  cpvCodes: textArray("cpv_codes"),
-  executionProvinces: textArray("execution_provinces"),
-  executionMunicipality: text("execution_municipality"),
-  baseBudgetExVatEur: euros("base_budget_ex_vat_eur"),
-  estimatedValueEur: euros("estimated_value_eur"),
-  firstPublishedAt: ts("first_published_at"),
-  submissionDeadlineAt: ts("submission_deadline_at"),
-  primaryOfficialUrl: text("primary_official_url"),
-  rawSummary: jsonb("raw_summary").$type<JsonObject>().notNull().default({}),
-  firstSeenAt: ts("first_seen_at").notNull().defaultNow(),
-  lastSeenAt: ts("last_seen_at").notNull().defaultNow(),
-  updatedAt: ts("updated_at").notNull().defaultNow(),
-  searchDocument: tsvector("search_document").generatedAlwaysAs(sql``),
-});
-
-export const tenderLots = pgTable("tender_lots", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tenderId: uuid("tender_id")
-    .notNull()
-    .references(() => tenders.id, { onDelete: "cascade" }),
-  sourceLotCode: text("source_lot_code").notNull(),
-  title: text("title"),
-  description: text("description"),
-  cpvCodes: textArray("cpv_codes"),
-  executionProvinces: textArray("execution_provinces"),
-  baseBudgetExVatEur: euros("base_budget_ex_vat_eur"),
-  estimatedValueEur: euros("estimated_value_eur"),
-  submissionDeadlineAt: ts("submission_deadline_at"),
-  createdAt: ts("created_at").notNull().defaultNow(),
-});
-
-export const tenderSources = pgTable("tender_sources", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tenderId: uuid("tender_id")
-    .notNull()
-    .references(() => tenders.id, { onDelete: "cascade" }),
-  sourcePlatform: text("source_platform").notNull(),
-  externalRecordId: text("external_record_id").notNull(),
-  officialUrl: text("official_url").notNull(),
-  sourceUpdatedAt: ts("source_updated_at"),
-  firstSeenAt: ts("first_seen_at").notNull().defaultNow(),
-  lastSeenAt: ts("last_seen_at").notNull().defaultNow(),
-  rawPayload: jsonb("raw_payload").$type<unknown>(),
-});
-
-export const tenderEvents = pgTable("tender_events", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tenderId: uuid("tender_id")
-    .notNull()
-    .references(() => tenders.id, { onDelete: "cascade" }),
-  tenderSourceId: uuid("tender_source_id").references(() => tenderSources.id, {
-    onDelete: "set null",
-  }),
-  externalNoticeId: text("external_notice_id"),
-  eventType: text("event_type").notNull(),
-  headline: text("headline"),
-  details: text("details"),
-  effectiveAt: ts("effective_at"),
-  officialUrl: text("official_url"),
-  payload: jsonb("payload").$type<JsonObject>().notNull().default({}),
-  createdAt: ts("created_at").notNull().defaultNow(),
-});
-
-/* ------------------------------ Matching ---------------------------------- */
-
-export const tenderMatches = pgTable("tender_matches", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  alertProfileId: uuid("alert_profile_id")
-    .notNull()
-    .references(() => alertProfiles.id, { onDelete: "cascade" }),
-  tenderId: uuid("tender_id")
-    .notNull()
-    .references(() => tenders.id, { onDelete: "cascade" }),
-  score: numeric("score", { precision: 5, scale: 2, mode: "number" }).notNull(),
-  matchReason: text("match_reason"),
-  matchedLotCodes: textArray("matched_lot_codes"),
-  feedback: text("feedback").$type<"relevant" | "irrelevant">(),
-  calculatedAt: ts("calculated_at").notNull().defaultNow(),
-  firstMatchedAt: ts("first_matched_at").notNull().defaultNow(),
-});
-
-/* ------------------------------ Tracking ---------------------------------- */
-
-export type WorkflowStatus =
-  | "saved"
-  | "evaluating"
-  | "preparing"
-  | "submitted"
-  | "won"
-  | "lost"
-  | "archived";
-
-export const trackedTenders = pgTable("tracked_tenders", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  companyId: uuid("company_id")
-    .notNull()
-    .references(() => companies.id, { onDelete: "cascade" }),
-  tenderId: uuid("tender_id")
-    .notNull()
-    .references(() => tenders.id, { onDelete: "cascade" }),
-  assignedUserId: uuid("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
-  workflowStatus: text("workflow_status").$type<WorkflowStatus>().notNull().default("saved"),
-  notes: text("notes"),
-  createdAt: ts("created_at").notNull().defaultNow(),
-  updatedAt: ts("updated_at").notNull().defaultNow(),
-});
-
-export const tenderTasks = pgTable("tender_tasks", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  trackedTenderId: uuid("tracked_tender_id")
-    .notNull()
-    .references(() => trackedTenders.id, { onDelete: "cascade" }),
-  assignedUserId: uuid("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
-  title: text("title").notNull(),
-  description: text("description"),
-  dueAt: ts("due_at"),
-  completedAt: ts("completed_at"),
-  origin: text("origin")
-    .$type<"manual" | "template" | "ai_suggested">()
-    .notNull()
-    .default("manual"),
-  sourceReference: text("source_reference"),
-  createdAt: ts("created_at").notNull().defaultNow(),
-});
-
-/* ---------------------------- Notifications ------------------------------- */
-
-export type DeliveryStatus = "queued" | "sent" | "failed" | "cancelled";
+/* ------------------------------ Notifications ----------------------------- */
 
 export const notificationDeliveries = pgTable("notification_deliveries", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  companyId: uuid("company_id")
-    .notNull()
-    .references(() => companies.id, { onDelete: "cascade" }),
-  alertProfileId: uuid("alert_profile_id").references(() => alertProfiles.id, {
-    onDelete: "set null",
-  }),
-  tenderId: uuid("tender_id").references(() => tenders.id, { onDelete: "set null" }),
-  tenderEventId: uuid("tender_event_id").references(() => tenderEvents.id, {
-    onDelete: "set null",
-  }),
   notificationType: text("notification_type").notNull(),
-  channel: text("channel").$type<"email" | "in_app">().notNull().default("email"),
   dedupeKey: text("dedupe_key").notNull().unique(),
-  status: text("status").$type<DeliveryStatus>().notNull().default("queued"),
-  scheduledAt: ts("scheduled_at").notNull().defaultNow(),
-  sentAt: ts("sent_at"),
+  status: text("status").$type<"queued" | "sent" | "failed">().notNull().default("queued"),
+  attemptCount: integer("attempt_count").notNull().default(0),
   providerMessageId: text("provider_message_id"),
   errorMessage: text("error_message"),
-  attemptCount: integer("attempt_count").notNull().default(0),
-  lastAttemptAt: ts("last_attempt_at"),
-});
-
-export const companySubscriptions = pgTable("company_subscriptions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  companyId: uuid("company_id")
-    .notNull()
-    .unique()
-    .references(() => companies.id, { onDelete: "cascade" }),
-  planCode: text("plan_code").notNull().default("free"),
-  status: text("status").notNull().default("inactive"),
-  billingProvider: text("billing_provider"),
-  externalCustomerId: text("external_customer_id"),
-  externalSubscriptionId: text("external_subscription_id"),
-  currentPeriodEnd: ts("current_period_end"),
-  updatedAt: ts("updated_at").notNull().defaultNow(),
-});
-
-/* ------------------------------ Auxiliary --------------------------------- */
-
-export type ImportRunStatus = "running" | "succeeded" | "partial" | "failed";
-
-export const importRuns = pgTable("import_runs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  connector: text("connector").notNull(),
-  sourceUrl: text("source_url").notNull(),
-  triggeredBy: text("triggered_by").notNull().default("cli"),
-  status: text("status").$type<ImportRunStatus>().notNull().default("running"),
-  startedAt: ts("started_at").notNull().defaultNow(),
-  finishedAt: ts("finished_at"),
-  pagesFetched: integer("pages_fetched").notNull().default(0),
-  entriesSeen: integer("entries_seen").notNull().default(0),
-  tendersCreated: integer("tenders_created").notNull().default(0),
-  tendersUpdated: integer("tenders_updated").notNull().default(0),
-  tendersUnchanged: integer("tenders_unchanged").notNull().default(0),
-  eventsCreated: integer("events_created").notNull().default(0),
-  errorsCount: integer("errors_count").notNull().default(0),
-  errors: jsonb("errors").$type<ImportError[]>().notNull().default([]),
-  highWaterMark: ts("high_water_mark"),
-  message: text("message"),
-});
-
-/** Every page fetched by an import run; `storage_key` points at the archived raw copy. */
-export const importRunPages = pgTable(
-  "import_run_pages",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    importRunId: uuid("import_run_id")
-      .notNull()
-      .references(() => importRuns.id, { onDelete: "cascade" }),
-    pageNumber: integer("page_number").notNull(),
-    sourceUrl: text("source_url").notNull(),
-    contentSha256: text("content_sha256").notNull(),
-    byteSize: integer("byte_size").notNull(),
-    storageKey: text("storage_key"),
-    fetchedAt: ts("fetched_at").notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex("import_run_pages_run_page_uq").on(t.importRunId, t.pageNumber)],
-);
-
-export interface ImportError {
-  externalRecordId?: string;
-  message: string;
-}
-
-export const cpvCodes = pgTable("cpv_codes", {
-  code: text("code").primaryKey(),
-  labelEs: text("label_es").notNull(),
-  searchDocument: tsvector("search_document").generatedAlwaysAs(sql``),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  sentAt: ts("sent_at"),
 });

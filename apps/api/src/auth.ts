@@ -1,9 +1,9 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
-import { authAccounts, authSessions, authVerifications, getDb, users } from "@licita/db";
-import { getMailer } from "@licita/notifications/mailer";
-import { passwordResetEmail } from "@licita/notifications/templates";
+import { authAccounts, authSessions, authVerifications, getDb, users } from "@felina/db";
+import { getMailer } from "@felina/notifications/mailer";
+import { passwordResetEmail } from "@felina/notifications/templates";
 
 import { apiEnv } from "./env.ts";
 
@@ -35,7 +35,7 @@ export const auth = betterAuth({
       verification: authVerifications,
     },
   }),
-  // The public `users` table (packages/db/migrations/0001) is Better Auth's user model.
+  // The public `users` table (packages/db/migrations/0001) is Better Auth user model.
   user: { fields: { name: "fullName" } },
   advanced: {
     database: { generateId: "uuid" },

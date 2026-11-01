@@ -25,3 +25,5 @@ release. Add a tool name to select part of the graph. For example, run
 - [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
 
 <!--VITE PLUS END-->
+
+Use Shadcn UI for reusable components whenever possible. Always use Base UI for the components and any reusable components you create.

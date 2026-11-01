@@ -7,7 +7,7 @@ export type TenantTx = Parameters<Parameters<ReturnType<typeof getDb>["transacti
 /**
  * Runs `work` in a transaction as the restricted `app_user` role with `app.user_id`
  * set to the signed-in user, so every statement is filtered by the RLS policies in
- * migrations/0004_rls.sql. Both settings are transaction-local (`SET LOCAL`),
+ * migrations/0002_rls.sql. Both settings are transaction-local (`SET LOCAL`),
  * which keeps them safe with pooled connections.
  */
 export function withTenant<T>(userId: string, work: (tx: TenantTx) => Promise<T>): Promise<T> {

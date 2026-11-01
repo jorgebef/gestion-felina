@@ -1,8 +1,10 @@
 import { queryOptions } from "@tanstack/react-query";
 
-import type { WorkflowStatusValue } from "@licita/domain/tenders";
-import type { MatchListQuery } from "@licita/schemas/matches";
-import type { TenderSearch } from "@licita/schemas/tender-search";
+import type { ActionListQuery } from "@felina/schemas/action";
+import type { CatListQuery } from "@felina/schemas/cat";
+import type { ColonyListQuery } from "@felina/schemas/colony";
+import type { OrganizationListQuery } from "@felina/schemas/organization";
+import type { ProposalStatus } from "@felina/domain/felina";
 
 import { api } from "./api";
 
@@ -18,65 +20,98 @@ export const authConfigQuery = queryOptions({
   staleTime: Infinity,
 });
 
-export const publicStatsQuery = queryOptions({
-  queryKey: ["public-stats"],
-  queryFn: () => api().public.stats(),
-  staleTime: 5 * 60_000,
-});
+export const invitationQuery = (token: string) =>
+  queryOptions({
+    queryKey: ["invitation", token],
+    queryFn: () => api().public.invitation(token),
+  });
 
 export const dashboardQuery = queryOptions({
   queryKey: ["dashboard"],
   queryFn: () => api().dashboard.get(),
 });
 
-export const matchesQuery = (search: MatchListQuery) =>
+export const coloniesQuery = (query: ColonyListQuery = {}) =>
   queryOptions({
-    queryKey: ["matches", search],
-    queryFn: () => api().matches.list(search),
-  });
-
-export const tenderSearchQuery = (search: TenderSearch) =>
-  queryOptions({
-    queryKey: ["tenders", "search", search],
-    queryFn: () => api().tenders.search(search),
+    queryKey: ["colonies", "list", query],
+    queryFn: () => api().colonies.list(query),
     placeholderData: (previous) => previous,
   });
 
-export const tenderQuery = (id: string) =>
+export const colonyQuery = (id: string) =>
   queryOptions({
-    queryKey: ["tenders", id],
-    queryFn: () => api().tenders.get(id),
+    queryKey: ["colonies", id],
+    queryFn: () => api().colonies.get(id),
   });
 
-export const trackedListQuery = (status?: WorkflowStatusValue) =>
-  queryOptions({
-    queryKey: ["tracked", status ?? "all"],
-    queryFn: () => api().tracked.list({ status }),
-  });
-
-export const trackedDetailQuery = (tenderId: string) =>
-  queryOptions({
-    queryKey: ["tracked", "detail", tenderId],
-    queryFn: () => api().tenders.tracking(tenderId),
-  });
-
-export const alertProfilesQuery = queryOptions({
-  queryKey: ["alert-profiles"],
-  queryFn: () => api().alertProfiles.list(),
+export const colonyOptionsQuery = queryOptions({
+  queryKey: ["colonies", "options"],
+  queryFn: () => api().colonies.options(),
 });
 
-export const alertProfileQuery = (id: string) =>
+export const catsQuery = (query: CatListQuery = {}) =>
   queryOptions({
-    queryKey: ["alert-profiles", id],
-    queryFn: () => api().alertProfiles.get(id),
+    queryKey: ["cats", "list", query],
+    queryFn: () => api().cats.list(query),
+    placeholderData: (previous) => previous,
   });
 
-export const companySettingsQuery = queryOptions({
-  queryKey: ["company-settings"],
-  queryFn: () => api().companies.current(),
+export const catQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["cats", id],
+    queryFn: () => api().cats.get(id),
+  });
+
+export const catOptionsQuery = queryOptions({
+  queryKey: ["cats", "options"],
+  queryFn: () => api().actions.catOptions(),
 });
 
-export const deliveriesQuery = queryOptions({
-  queryKey: ["deliveries"],
-  queryFn: () => api().notifications.list(),
+export const actionsQuery = (query: Partial<ActionListQuery> = {}) =>
+  queryOptions({
+    queryKey: ["actions", "list", query],
+    queryFn: () => api().actions.list(query),
+    placeholderData: (previous) => previous,
+  });
+
+export const actionQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["actions", id],
+    queryFn: () => api().actions.get(id),
+  });
+
+export const proposalsQuery = (
+  query: { status?: ProposalStatus; colonyId?: string; catId?: string } = {},
+) =>
+  queryOptions({
+    queryKey: ["proposals", query],
+    queryFn: () => api().proposals.list(query),
+  });
+
+export const organizationQuery = queryOptions({
+  queryKey: ["organization"],
+  queryFn: () => api().organizations.current(),
 });
+
+export const membersQuery = queryOptions({
+  queryKey: ["organization", "members"],
+  queryFn: () => api().organizations.members(),
+});
+
+export const invitationsQuery = queryOptions({
+  queryKey: ["organization", "invitations"],
+  queryFn: () => api().organizations.invitations(),
+});
+
+export const adminOrganizationsQuery = (query: OrganizationListQuery = {}) =>
+  queryOptions({
+    queryKey: ["admin", "organizations", query],
+    queryFn: () => api().admin.organizations(query),
+    placeholderData: (previous) => previous,
+  });
+
+export const adminOrganizationQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["admin", "organizations", id],
+    queryFn: () => api().admin.organization(id),
+  });

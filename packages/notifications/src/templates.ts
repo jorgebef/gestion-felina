@@ -1,9 +1,9 @@
-import { provinceName } from "@licita/domain/provinces";
+import { ACTION_TYPE_LABELS, type ActionType } from "@felina/domain/felina";
 
 import { notificationsEnv } from "./env.ts";
 import type { EmailMessage } from "./mailer.ts";
 
-const APP_NAME = "Licita";
+export const APP_NAME = "GestiónFelina";
 
 function escapeHtml(value: string): string {
   return value
@@ -14,137 +14,240 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
-const euro = new Intl.NumberFormat("es-ES", {
-  style: "currency",
-  currency: "EUR",
-  maximumFractionDigits: 0,
-});
-const dateFormat = new Intl.DateTimeFormat("es-ES", {
-  dateStyle: "medium",
-  timeStyle: "short",
+const dateTimeFormat = new Intl.DateTimeFormat("es-ES", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
   timeZone: "Europe/Madrid",
 });
 
+export function appUrl(path = "/"): string {
+  return `${notificationsEnv().APP_URL.replace(/\/$/, "")}${path}`;
+}
+
 function layout(title: string, body: string, footer: string): string {
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
-<body style="margin:0;background:#f5f6f8;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0f172a">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f6f8;padding:24px 12px"><tr><td align="center">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px">
-<tr><td style="padding:20px 24px;border-bottom:1px solid #e2e8f0;font-weight:600;font-size:16px">${APP_NAME}</td></tr>
+<body style="margin:0;background:#f7f5f1;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1c1917">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f5f1;padding:24px 12px"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #e7e2da;border-radius:12px">
+<tr><td style="padding:20px 24px;border-bottom:1px solid #e7e2da;font-weight:600;font-size:16px">${APP_NAME}</td></tr>
 <tr><td style="padding:24px">${body}</td></tr>
-<tr><td style="padding:16px 24px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b">${footer}</td></tr>
+<tr><td style="padding:16px 24px;border-top:1px solid #e7e2da;font-size:12px;color:#78716c">${footer}</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
-export function passwordResetEmail({ to, url }: { to: string; url: string }): EmailMessage {
-  const title = "Restablecer contraseña";
-  return {
-    to,
-    subject: `${APP_NAME}: restablece tu contraseña`,
-    text: `Hemos recibido una solicitud para restablecer tu contraseña.\n\nAbre este enlace (válido durante 1 hora):\n${url}\n\nSi no lo has solicitado, ignora este correo.`,
-    html: layout(
-      title,
-      `<h1 style="font-size:20px;margin:0 0 12px">${title}</h1>
-<p style="margin:0 0 20px;line-height:1.5">Hemos recibido una solicitud para restablecer tu contraseña. El enlace es válido durante 1 hora.</p>
-<a href="${escapeHtml(url)}" style="display:inline-block;background:#1d4ed8;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Elegir nueva contraseña</a>`,
-      "Si no lo has solicitado, puedes ignorar este correo.",
-    ),
-  };
+function button(url: string, label: string): string {
+  return `<a href="${escapeHtml(url)}" style="display:inline-block;background:#b45309;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">${escapeHtml(label)}</a>`;
 }
 
-export interface DigestTender {
-  tenderId: string;
-  title: string;
-  authorityName: string | null;
-  score: number;
-  baseBudgetExVatEur: number | null;
-  submissionDeadlineAt: Date | null;
-  executionProvinces: string[];
-  officialUrl: string | null;
-  firstReason?: string;
-}
-
-export interface DigestSection {
-  profileName: string;
-  tenders: DigestTender[];
-}
-
-const MAX_PER_SECTION = 20;
-
-function tenderLines(t: DigestTender, appUrl: string) {
-  const facts = [
-    t.authorityName,
-    t.baseBudgetExVatEur != null ? `${euro.format(t.baseBudgetExVatEur)} sin IVA` : null,
-    t.submissionDeadlineAt ? `Plazo: ${dateFormat.format(t.submissionDeadlineAt)}` : null,
-    t.executionProvinces.length
-      ? t.executionProvinces.map((p) => provinceName(p) ?? p).join(", ")
-      : null,
-  ].filter(Boolean) as string[];
-  return { facts, detailUrl: `${appUrl}/licitaciones/${t.tenderId}` };
-}
-
-export function digestEmail({
+function simpleEmail({
   to,
-  heading,
-  intro,
-  sections,
-  subjectPrefix = APP_NAME,
+  subject,
+  title,
+  paragraphs,
+  action,
+  footer = "Recibes este correo porque participas en una organización de GestiónFelina.",
 }: {
   to: string;
-  heading: string;
-  intro: string;
-  sections: DigestSection[];
-  subjectPrefix?: string;
+  subject: string;
+  title: string;
+  paragraphs: string[];
+  action?: { url: string; label: string };
+  footer?: string;
 }): EmailMessage {
-  const appUrl = notificationsEnv().APP_URL.replace(/\/$/, "");
-  const total = sections.reduce((n, s) => n + s.tenders.length, 0);
+  const html = layout(
+    title,
+    `<h1 style="font-size:20px;margin:0 0 12px">${escapeHtml(title)}</h1>
+${paragraphs.map((p) => `<p style="margin:0 0 14px;line-height:1.5">${escapeHtml(p)}</p>`).join("\n")}
+${action ? `<p style="margin:20px 0 0">${button(action.url, action.label)}</p>` : ""}`,
+    escapeHtml(footer),
+  );
+  const text = [title, "", ...paragraphs, ...(action ? ["", `${action.label}: ${action.url}`] : [])]
+    .join("\n")
+    .concat(`\n\n—\n${footer}`);
+  return { to, subject: `${APP_NAME}: ${subject}`, html, text };
+}
 
-  const htmlSections = sections
-    .map((section) => {
-      const items = section.tenders
-        .slice(0, MAX_PER_SECTION)
-        .map((t) => {
-          const { facts, detailUrl } = tenderLines(t, appUrl);
-          return `<tr><td style="padding:14px 0;border-top:1px solid #e2e8f0">
-<a href="${escapeHtml(detailUrl)}" style="color:#0f172a;font-weight:600;text-decoration:none;line-height:1.4">${escapeHtml(t.title)}</a>
-<div style="font-size:13px;color:#475569;margin-top:4px">${facts.map(escapeHtml).join(" · ")}</div>
-${t.firstReason ? `<div style="font-size:12px;color:#64748b;margin-top:4px">${escapeHtml(t.firstReason)}</div>` : ""}
-<div style="font-size:12px;margin-top:6px">Relevancia ${Math.round(t.score)}/100 · <a href="${escapeHtml(detailUrl)}" style="color:#1d4ed8">Ver ficha</a>${t.officialUrl ? ` · <a href="${escapeHtml(t.officialUrl)}" style="color:#1d4ed8">Expediente oficial</a>` : ""}</div>
-</td></tr>`;
-        })
-        .join("");
-      const more =
-        section.tenders.length > MAX_PER_SECTION
-          ? `<p style="font-size:13px;margin:8px 0 0"><a href="${appUrl}/dashboard" style="color:#1d4ed8">Y ${section.tenders.length - MAX_PER_SECTION} más en tu panel</a></p>`
-          : "";
-      return `<h2 style="font-size:15px;margin:24px 0 4px">${escapeHtml(section.profileName)} <span style="color:#64748b;font-weight:400">(${section.tenders.length})</span></h2>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${items}</table>${more}`;
-    })
-    .join("");
+export function passwordResetEmail({ to, url }: { to: string; url: string }): EmailMessage {
+  return simpleEmail({
+    to,
+    subject: "restablece tu contraseña",
+    title: "Restablecer contraseña",
+    paragraphs: [
+      "Hemos recibido una solicitud para restablecer tu contraseña. El enlace es válido durante 1 hora.",
+    ],
+    action: { url, label: "Elegir nueva contraseña" },
+    footer: "Si no lo has solicitado, puedes ignorar este correo.",
+  });
+}
 
-  const textSections = sections
-    .map((section) => {
-      const items = section.tenders
-        .slice(0, MAX_PER_SECTION)
-        .map((t) => {
-          const { facts, detailUrl } = tenderLines(t, appUrl);
-          return `- ${t.title}\n  ${facts.join(" · ")}\n  Relevancia ${Math.round(t.score)}/100\n  Ficha: ${detailUrl}${t.officialUrl ? `\n  Expediente oficial: ${t.officialUrl}` : ""}`;
-        })
-        .join("\n");
-      return `## ${section.profileName} (${section.tenders.length})\n${items}`;
-    })
-    .join("\n\n");
+export function invitationEmail({
+  to,
+  organizationName,
+  inviterName,
+  role,
+  url,
+  expiresInDays,
+}: {
+  to: string;
+  organizationName: string;
+  inviterName: string | null;
+  role: "admin" | "member";
+  url: string;
+  expiresInDays: number;
+}): EmailMessage {
+  const who = inviterName ? `${inviterName} te ha invitado` : "Te han invitado";
+  return simpleEmail({
+    to,
+    subject: `invitación a ${organizationName}`,
+    title: `Únete a ${organizationName}`,
+    paragraphs: [
+      `${who} a ${organizationName} en ${APP_NAME}${role === "admin" ? " como administrador/a" : ""}.`,
+      `Crea tu cuenta (o inicia sesión) con este email: ${to}. La invitación caduca en ${expiresInDays} días.`,
+    ],
+    action: { url, label: "Aceptar invitación" },
+    footer: "Si no esperabas esta invitación, ignora este correo.",
+  });
+}
 
-  const footer = `La puntuación de relevancia indica el encaje con tu perfil de alertas; no es una probabilidad de adjudicación ni valida tu capacidad legal para licitar. Comprueba siempre los datos en el expediente oficial. <a href="${appUrl}/alertas" style="color:#64748b">Gestionar alertas y frecuencia</a>.`;
+export function organizationReviewedEmail({
+  to,
+  organizationName,
+  status,
+  note,
+}: {
+  to: string;
+  organizationName: string;
+  status: "approved" | "rejected" | "suspended" | "pending";
+  note: string | null;
+}): EmailMessage {
+  const titles = {
+    approved: `${organizationName} ya está aprobada`,
+    rejected: `No hemos podido aprobar ${organizationName}`,
+    suspended: `${organizationName} está suspendida`,
+    pending: `${organizationName} vuelve a estar en revisión`,
+  } as const;
+  const bodies = {
+    approved: "Ya podéis registrar colonias, gatos y acciones e invitar a más personas.",
+    rejected: "La solicitud de alta no se ha aprobado.",
+    suspended: "Mientras dure la suspensión no podréis acceder a los datos de la organización.",
+    pending: "La organización está de nuevo pendiente de revisión.",
+  } as const;
+  return simpleEmail({
+    to,
+    subject: titles[status],
+    title: titles[status],
+    paragraphs: [bodies[status], ...(note ? [`Nota del equipo: ${note}`] : [])],
+    action: { url: appUrl("/panel"), label: "Ir a GestiónFelina" },
+  });
+}
 
+export function newOrganizationEmail({
+  to,
+  organizationName,
+}: {
+  to: string;
+  organizationName: string;
+}): EmailMessage {
+  return simpleEmail({
+    to,
+    subject: `nueva asociación pendiente: ${organizationName}`,
+    title: "Nueva asociación pendiente de aprobación",
+    paragraphs: [`${organizationName} se ha registrado y espera tu revisión.`],
+    action: { url: appUrl("/admin"), label: "Revisar solicitudes" },
+    footer: "Recibes este correo porque eres superadministrador/a de GestiónFelina.",
+  });
+}
+
+export function proposalReceivedEmail({
+  to,
+  townHallName,
+  targetLabel,
+  url,
+}: {
+  to: string;
+  townHallName: string;
+  targetLabel: string;
+  url: string;
+}): EmailMessage {
+  return simpleEmail({
+    to,
+    subject: `${townHallName} propone un cambio`,
+    title: "Propuesta de cambio del ayuntamiento",
+    paragraphs: [
+      `${townHallName} propone modificar ${targetLabel}. Los cambios no se aplican hasta que una persona administradora de tu asociación los acepte.`,
+    ],
+    action: { url, label: "Revisar propuesta" },
+  });
+}
+
+export function proposalResolvedEmail({
+  to,
+  targetLabel,
+  accepted,
+  note,
+  url,
+}: {
+  to: string;
+  targetLabel: string;
+  accepted: boolean;
+  note: string | null;
+  url: string;
+}): EmailMessage {
+  const title = accepted ? "Propuesta aceptada" : "Propuesta rechazada";
+  return simpleEmail({
+    to,
+    subject: `${title.toLowerCase()}: ${targetLabel}`,
+    title,
+    paragraphs: [
+      accepted
+        ? `La asociación gestora ha aceptado tu propuesta sobre ${targetLabel}; los cambios ya están aplicados.`
+        : `La asociación gestora ha rechazado tu propuesta sobre ${targetLabel}.`,
+      ...(note ? [`Comentario: ${note}`] : []),
+    ],
+    action: { url, label: "Ver detalle" },
+  });
+}
+
+export interface ReminderAction {
+  id: string;
+  name: string;
+  actionType: ActionType;
+  scheduledAt: Date;
+  isUrgent: boolean;
+  colonyName: string | null;
+}
+
+export function actionRemindersEmail({
+  to,
+  actions,
+}: {
+  to: string;
+  actions: ReminderAction[];
+}): EmailMessage {
+  const lines = actions.map((a) => {
+    const when = dateTimeFormat.format(a.scheduledAt);
+    const where = a.colonyName ? ` · ${a.colonyName}` : "";
+    return {
+      text: `${a.isUrgent ? "[URGENTE] " : ""}${a.name} (${ACTION_TYPE_LABELS[a.actionType]}) — ${when}${where}\n  ${appUrl(`/acciones/${a.id}`)}`,
+      html: `<tr><td style="padding:12px 0;border-top:1px solid #e7e2da">
+${a.isUrgent ? '<span style="color:#b91c1c;font-weight:600;font-size:12px">URGENTE · </span>' : ""}<a href="${escapeHtml(appUrl(`/acciones/${a.id}`))}" style="color:#1c1917;font-weight:600;text-decoration:none">${escapeHtml(a.name)}</a>
+<div style="font-size:13px;color:#57534e;margin-top:4px">${escapeHtml(ACTION_TYPE_LABELS[a.actionType])} · ${escapeHtml(when)}${escapeHtml(where)}</div></td></tr>`,
+    };
+  });
+  const title =
+    actions.length === 1 ? "Tienes 1 acción hoy" : `Tienes ${actions.length} acciones hoy`;
+  const footer = "Recibes este recordatorio porque participas en estas acciones.";
   return {
     to,
-    subject: `${subjectPrefix}: ${total} ${total === 1 ? "licitación relevante" : "licitaciones relevantes"}`,
+    subject: `${APP_NAME}: ${title.toLowerCase()}`,
     html: layout(
-      heading,
-      `<h1 style="font-size:20px;margin:0 0 8px">${escapeHtml(heading)}</h1><p style="margin:0;color:#475569;line-height:1.5">${escapeHtml(intro)}</p>${htmlSections}`,
+      title,
+      `<h1 style="font-size:20px;margin:0 0 8px">${escapeHtml(title)}</h1><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${lines.map((l) => l.html).join("")}</table>`,
       footer,
     ),
-    text: `${heading}\n\n${intro}\n\n${textSections}\n\n—\nLa puntuación indica el encaje con tu perfil; no es una probabilidad de adjudicación. Gestiona tus alertas: ${appUrl}/alertas`,
+    text: `${title}\n\n${lines.map((l) => `- ${l.text}`).join("\n")}\n\n—\n${footer}`,
   };
 }

@@ -1,28 +1,25 @@
 /**
  * Worker process: runs the background jobs on their schedules (SCHEDULE_* variables).
- * A job never overlaps itself in this process, and the import pipeline refuses to start
- * while another run is active, so running several workers by mistake is safe.
+ * A job never overlaps itself in this process, and deliveries are deduplicated in the
+ * database, so running several workers by mistake does not send duplicates.
  *
- *   vp run --filter @licita/worker dev     # development (watch)
+ *   vp run --filter @felina/worker dev     # development (watch)
  *   node dist/index.mjs                    # production
  */
-import { loadEnv } from "@licita/db/env";
+import { loadEnv } from "@felina/db/env";
 
 loadEnv();
 
 const { Cron } = await import("croner");
-const { closeDb } = await import("@licita/db");
+const { closeDb } = await import("@felina/db");
 const { workerEnv } = await import("./env.ts");
 const { runJob } = await import("./jobs.ts");
 
-type ScheduledJob = "sync" | "daily" | "weekly" | "rematch";
+type ScheduledJob = "reminders";
 
 const env = workerEnv();
 const schedules: Record<ScheduledJob, string> = {
-  sync: env.SCHEDULE_SYNC,
-  daily: env.SCHEDULE_DAILY,
-  weekly: env.SCHEDULE_WEEKLY,
-  rematch: env.SCHEDULE_REMATCH,
+  reminders: env.SCHEDULE_REMINDERS,
 };
 
 const running = new Set<Promise<unknown>>();

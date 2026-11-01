@@ -1,66 +1,69 @@
-# GestiónFelina — MVP de plataforma de gestion de colonias felinas
+# GestiónFelina — MVP de gestión de colonias felinas
 
-Plataforma SaaS para gestion de colonias felinas: El publico objetivo de la herramienta son tanto Asociaciones de voluntarios, usuarios voluntarios que gestionan colonias felinas y Ayuntamientos.
-Por un lado, todo usuario tiene que estar comprendido dentro de una Organizacion, que podra ser una asociacion o un Ayuntamiento.
-Todas las organizaciones deben ser aprobadas y validadas manualmente por el super administrador (que soy yo).
-Cada organizacion puede tener uno o varios administradores con privilegios para invitar a nuevos usuarios, eliminar usuarios, crear colonias felinas, eliminar colonias felinas, etc...
-Por otro lado, existen gatos, que se agrupan en colonias. Los gatos pueden estar asociados a una colonia o no, pero siempre son creados por un usuario que esta dentro de una organizacion. Todos los gatos tienen que tener una ubicacion, que necesariamente tiene que estar vinculada a un municipio del territorio de España.
-Todos los gatos tienen una foto principal que se usara como foto de perfil de cada gato, el genero del gato, fecha de nacimiento (puede ser desconocida), y tiene asociadas distintas acciones como por ejemplo, castracion, visita a veterinario, captura, etc...
-Cada accion esta gestionada po una organizacion, pueden participar varios usuarios y puede estar relacionada con varios gatos. Cada accion tiene fecha y hora, nombre, descripcion, si es urgente o no.
+Plataforma SaaS para **asociaciones** de voluntariado felino y **ayuntamientos**:
 
-Cada Ayuntamiento es una organizacion que tiene asociado un municipio de España. Cada ayuntamiento, solo despues de estar validado manualmente, puede ver todas las colonias felinas que estan asociadas al municipio y puede validar las colonias como "autorizadas" por el ayuntamiento.
+- Toda persona pertenece a **una sola organización**: una asociación o un ayuntamiento.
+- Toda organización la **aprueba a mano el superadministrador**. Las asociaciones se
+  registran solas (quedan pendientes); los ayuntamientos **no se registran**: los da de
+  alta el superadministrador (uno por municipio) e invita a su responsable.
+- Los **administradores** de cada organización invitan y eliminan personas y cambian roles.
+  En una asociación, además, crean, editan y eliminan colonias y resuelven las propuestas
+  del ayuntamiento.
+- **Colonias**: una única asociación gestora, ubicación exacta (coordenadas), municipio INE
+  y dirección opcional. El ayuntamiento del municipio puede **autorizarlas**.
+- **Gatos**: siempre de una organización, con o sin colonia, foto principal obligatoria,
+  sexo, fecha de nacimiento (desconocida o aproximada) y ubicación con municipio.
+- **Acciones** (castración, veterinario, captura, suelta, alimentación, otro): de una
+  asociación, con fecha y hora, nombre, descripción, urgencia, estado (planificada, en
+  proceso, realizada, cancelada), varios gatos y varios participantes.
+- El **ayuntamiento** ve (solo lectura) colonias, gatos y acciones de su municipio, recibe
+  todas las acciones en un **feed** donde las valida o las deja sin validar, y **propone
+  cambios** en colonias y gatos que la asociación gestora acepta o rechaza.
 
 ---
 
 ## 1. Puesta en marcha
 
 Requisitos: Node 24+, [Vite+](https://viteplus.dev) (`vp`), PostgreSQL 14+ (local o
-[Neon](https://neon.tech)) y, para los E2E, Google Chrome instalado.
+[Neon](https://neon.tech)) con las extensiones `pgcrypto`, `unaccent` y `pg_trgm`, y Google
+Chrome para los E2E.
 
 ```bash
 vp install
 cp .env.example .env.local          # rellena DATABASE_URL y BETTER_AUTH_SECRET
-vp run db:setup                     # migraciones SQL + catálogo CPV oficial (9.454 códigos)
-vp run job import --pages 5         # primera carga real desde PLACSP (~450 expedientes/página)
+vp run db:setup                     # migraciones SQL + 8.132 municipios del INE
 vp run dev                          # web http://localhost:3000 + API http://localhost:3001
-vp run dev:worker                   # opcional: jobs programados (importación, avisos)
+# Regístrate en la web y conviértete en superadministrador:
+vp run admin:grant tu@email.es
+vp run dev:worker                   # opcional: recordatorios diarios por email
 ```
 
 Todas las aplicaciones leen el mismo `.env.local` de la raíz; una variable definida en la
 shell tiene prioridad (`DATABASE_URL=… vp run dev`).
 
-En desarrollo `EMAIL_PROVIDER=console` imprime los correos (incluido el de restablecer
-contraseña) en la consola de la API o del worker. Para enviar de verdad:
-`EMAIL_PROVIDER=resend`, `RESEND_API_KEY` y un `EMAIL_FROM` de un dominio verificado.
-
-### Neon
-
-Crea una base de datos **nueva** (o una rama) para la app y usa su cadena del rol
-propietario en `DATABASE_URL`. La migración `0004_rls.sql` crea el rol `app_user`
-(`NOLOGIN`) y se lo concede al rol de conexión; Neon lo permite al propietario. El
-endpoint con pooler (`-pooler`) sirve también para la API y el worker: el aislamiento por
-empresa usa `SET LOCAL` dentro de transacciones (las pruebas de integración pasan contra
-él). Esta app usa Better Auth **autoalojado** en `apps/api`: no configures
-`BETTER_AUTH_URL` con la URL de Neon Auth.
+- **Correo**: `EMAIL_PROVIDER=console` imprime los correos (invitaciones, restablecer
+  contraseña…) en la consola de la API. Para enviarlos: `EMAIL_PROVIDER=resend`,
+  `RESEND_API_KEY` y un `EMAIL_FROM` de un dominio verificado.
+- **Fotos**: sin `S3_BUCKET` se guardan en `.data/uploads` (ignorado por git). En producción
+  configura un bucket S3/R2 (`S3_*`).
 
 ### Scripts (desde la raíz)
 
-| Comando                           | Qué hace                                                                                |
-| --------------------------------- | --------------------------------------------------------------------------------------- |
-| `vp run dev`                      | Web (Vite, :3000) y API (tsx watch, :3001) en paralelo                                  |
-| `vp run dev:worker`               | Worker con sus horarios (`SCHEDULE_*`)                                                  |
-| `vp run job <nombre> [--pages N]` | Ejecuta un job una vez (ver §4)                                                         |
-| `vp run build`                    | Build de las tres apps: `apps/web/.output` (Nitro), `apps/api/dist`, `apps/worker/dist` |
-| `vp run db:migrate` / `db:seed`   | Aplica `packages/db/migrations/*.sql` (idempotente) / carga el catálogo CPV             |
-| `vp check`                        | Formato, lint y type-check de todo el monorepo                                          |
-| `vp test`                         | Unitarios + integración (integración solo si hay `TEST_DATABASE_URL`)                   |
-| `vp run test:e2e`                 | Playwright contra web + API de desarrollo (escritorio y móvil)                          |
+| Comando                         | Qué hace                                                                   |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| `vp run dev`                    | Web (Vite, :3000) y API (tsx watch, :3001) en paralelo                     |
+| `vp run dev:worker`             | Worker con su horario (`SCHEDULE_REMINDERS`)                               |
+| `vp run job reminders`          | Envía una vez los recordatorios del día                                    |
+| `vp run admin:grant <email>`    | Concede (o con `--revoke` retira) el rol de superadministrador             |
+| `vp run build`                  | Build de web (`apps/web/.output`), API (`apps/api/dist`) y worker          |
+| `vp run db:migrate` / `db:seed` | Aplica `packages/db/migrations/*.sql` (idempotente) / carga los municipios |
+| `vp check`                      | Formato, lint y type-check de todo el monorepo                             |
+| `vp test`                       | Unitarios + integración (integración solo si hay `TEST_DATABASE_URL`)      |
+| `vp run test:e2e`               | Playwright contra la web y la API de desarrollo (escritorio y móvil)       |
 
 En producción: `node apps/web/.output/server/index.mjs`, `node apps/api/dist/index.mjs` y
-`node apps/worker/dist/index.mjs` (o `node apps/worker/dist/cli.mjs sync` desde un cron
-externo). La API y el worker empaquetan el código del monorepo y dejan fuera las
-dependencias de terceros: despliega cada app con sus `node_modules`
-(p. ej. `pnpm deploy --filter @licita/api`).
+`node apps/worker/dist/index.mjs` (o `node apps/worker/dist/cli.mjs reminders` desde un cron
+externo). Despliega cada app con sus `node_modules` (p. ej. `pnpm deploy --filter @felina/api`).
 
 ---
 
@@ -68,216 +71,120 @@ dependencias de terceros: despliega cada app con sus `node_modules`
 
 ```
 apps/
-  web/            @licita/web     TanStack Start: solo UI. Proxy same-origin /api/* → API
-  api/            @licita/api     Hono: /api/auth/* (Better Auth) y /api/v1/* (API de la app)
-  worker/         @licita/worker  Jobs programados (croner) + CLI de ejecución puntual
+  web/            @felina/web     TanStack Start: solo UI. Proxy same-origin /api/* → API
+  api/            @felina/api     Hono: /api/auth/* (Better Auth) y /api/v1/* (API de la app)
+  worker/         @felina/worker  Jobs programados (croner) + CLI de ejecución puntual
 packages/
-  db/             @licita/db            Drizzle (schema.ts refleja el SQL), withTenant() para RLS,
-                                        migraciones SQL, catálogo CPV, carga de .env
-  domain/         @licita/domain        Catálogos puros: provincias INE↔NUTS, tipos, estados,
-                                        sectores, normalización de texto en español
-  schemas/        @licita/schemas       Validación Zod compartida por la web y la API
-  core/           @licita/core          Lógica de negocio por caso de uso (empresas, perfiles,
-                                        licitaciones, seguimiento, panel)
-  api-client/     @licita/api-client    Cliente tipado de /api/v1 (tipos inferidos de las rutas Hono)
-  procurement/    @licita/procurement   Conectores + pipeline de importación (PLACSP)
-  matching/       @licita/matching      scoring.ts (pura) · engine.ts (persistencia) · config.ts
-  notifications/  @licita/notifications Correo (Resend/console), plantillas, resúmenes
-  storage/        @licita/storage       Almacenamiento S3 compatible (archivo de páginas originales)
-tests/            integration (incluida la API) · e2e · setup compartido
+  db/             @felina/db            Drizzle (schema.ts refleja el SQL), withTenant() para RLS,
+                                        migraciones SQL, municipios INE, admin:grant
+  domain/         @felina/domain        Vocabularios cerrados y etiquetas, provincias, municipios,
+                                        fechas en Europe/Madrid
+  schemas/        @felina/schemas       Validación Zod compartida por la web y la API
+  core/           @felina/core          Casos de uso: organizaciones, admin, colonias, gatos,
+                                        acciones, propuestas, panel
+  api-client/     @felina/api-client    Cliente tipado de /api/v1 (tipos inferidos de las rutas Hono)
+  notifications/  @felina/notifications Correo (Resend/console), plantillas, recordatorios
+  storage/        @felina/storage       Fotos: S3 compatible o disco local
+tests/            integration (RLS + API completa) · e2e (recorrido completo y móvil)
 ```
 
-Dependencias (sin ciclos): `domain` ← `schemas`, `db` ← `matching`, `procurement`,
-`notifications` ← `core` ← `api` ← `api-client` (solo tipos) ← `web`; `worker` usa
-`procurement`, `matching`, `notifications` y `storage`. La web **no** depende de `db` ni de
-`core`: solo de `api-client`, `domain` y `schemas`.
+Dependencias (sin ciclos): `domain` ← `schemas`, `db` ← `storage`, `notifications` ← `core`
+← `api` ← `api-client` (solo tipos) ← `web`. La web **no** depende de `db` ni de `core`.
 
 **Decisiones principales**
 
-- **Una sola API para todos los clientes.** La web llama a la API con el mismo cliente
-  tipado que podrá usar una app móvil. En el navegador va por el proxy `/api` de la web
-  (cookie de sesión de primera parte, sin CORS, la URL de callback de Google no cambia);
-  en el renderizado del servidor llama directamente a `API_URL` reenviando la cookie.
-- **Rutas Hono encadenadas → tipos de extremo a extremo.** `@licita/api-client` infiere
-  peticiones y respuestas de `apps/api` (las fechas llegan como cadenas ISO, como en JSON).
-  Cambiar una ruta rompe la compilación de quien la usa.
-- **Errores uniformes:** `{ "error": { "code": "NOT_FOUND", "message": "…" } }` con el
-  estado HTTP correspondiente (401, 403, 404, 400, 429, 500); la web los traduce al español.
-- **SQL como fuente de verdad.** El esquema entregado se aplica tal cual (`0001`); los
-  cambios van en migraciones nuevas. Drizzle se usa como query builder tipado.
-- **Better Auth sobre `users`.** La tabla pública `users` es el modelo de usuario de
-  Better Auth (`name` → `full_name`, ids `uuid`). Hashes, sesiones y tokens van a tablas
-  `auth_*` inaccesibles para el rol de la aplicación.
-- **Aislamiento en la base de datos.** Cada servicio de `core` abre una transacción con
-  `SET LOCAL ROLE app_user` y `app.user_id`; las políticas RLS hacen el resto. Además la
-  API valida entradas con Zod y filtra por empresa explícitamente. El worker usa el rol
-  propietario.
-- **Defensa en la API:** cabeceras de seguridad, CSRF por origen para formularios, límite
-  de 1 MB por petición, CORS solo para `APP_URL` y `TRUSTED_ORIGINS`, y límite de intentos
-  de Better Auth por IP (la web reenvía la IP del visitante).
-- **Worker sin colas.** Un proceso con horarios cron (`SCHEDULE_*`, zona Europe/Madrid);
-  un job no se solapa consigo mismo y la importación se niega a arrancar si ya hay otra en
-  curso, así que dos workers por error no duplican trabajo.
-- **Archivo de procedencia.** Cada página descargada se registra en `import_run_pages`
-  (URL, SHA-256, tamaño) y, si hay `S3_BUCKET`, se guarda comprimida en
-  `raw/<conector>/<aaaa>/<mm>/<dd>/<import_run_id>/<página>.atom`. Un fallo del
-  almacenamiento se anota en la importación, pero no la detiene.
+- **Permisos en la base de datos.** Cada petición abre una transacción con
+  `SET LOCAL ROLE app_user` y `app.user_id`; las políticas RLS de
+  `packages/db/migrations/0002_rls.sql` deciden qué ve y qué toca cada persona. La API
+  además comprueba rol y tipo de organización para dar errores claros.
+- **Operaciones sensibles como funciones `SECURITY DEFINER`** que comprueban quién llama:
+  registrar una asociación, aceptar una invitación, aprobar/rechazar/suspender
+  organizaciones, autorizar colonias y validar acciones. Nadie puede autoasignarse un rol,
+  unirse a una organización sin invitación, autorizar sus propias colonias ni validarse
+  sus acciones.
+- **Una persona, una organización**: `organization_members.user_id` es la clave primaria.
+- **Un ayuntamiento por municipio**: índice único parcial sobre `organizations`.
+- **Municipio = código INE** (`municipalities`, 8.132 municipios a 1/1/2025). Es lo que
+  relaciona colonias, gatos y acciones con su ayuntamiento; el nombre se muestra en texto
+  («A Coruña», no «Coruña, A») y se busca sin tildes.
+- **Acciones y municipio**: el de su colonia; si no tiene, el elegido o el del primer gato.
+  Se conserva aunque se borre la colonia, así el feed del ayuntamiento no pierde historia.
+- **Validación sin sorpresas**: si la asociación modifica una acción ya validada, sigue
+  validada pero el feed la marca como «Validada · modificada». Si una colonia o acción
+  cambia de municipio, su autorización/validación se anula.
+- **Propuestas de cambio**: el ayuntamiento envía solo los campos que cambian; se guardan
+  los valores anteriores para mostrar el «antes → después». Las aceptan o rechazan los
+  administradores de la asociación; al aceptarlas se aplican en la misma transacción.
+- **Fotos privadas**: se suben antes de guardar el gato (`POST /api/v1/uploads/photos`,
+  tipo detectado por los bytes, máx. 8 MB) y se sirven por la API solo a quien puede ver el
+  gato. La clave incluye la organización y se comprueba al guardar.
+- **Mapas** con Leaflet + teselas de OpenStreetMap, cargados solo en el navegador.
 
 ---
 
 ## 3. Base de datos y seguridad
 
-### Migraciones añadidas (sin renombrar ni borrar nada del esquema base)
+| Migración         | Contenido                                                                                                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0001_schema.sql` | Tablas, restricciones, triggers de integridad (misma organización en colonia/gato/acción, participantes miembros, al menos un admin, colonias/gatos/acciones solo de asociaciones) |
+| `0002_rls.sql`    | Rol `app_user`, funciones `app_*`, políticas RLS en todas las tablas                                                                                                               |
 
-| Migración                   | Contenido                                                                                                                                                                                                                                             | Motivo                                                                                                 |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `0002_auth.sql`             | `users.email_verified/image/updated_at`; tablas `auth_sessions`, `auth_accounts`, `auth_verifications`                                                                                                                                                | Campos que Better Auth necesita en su modelo de usuario                                                |
-| `0003_app_support.sql`      | `tenders.search_document` (tsvector sin tildes) + índices; `alert_profiles.sectors`; `tender_matches.first_matched_at`; `notification_deliveries.attempt_count/last_attempt_at`; tablas auxiliares `import_runs` y `cpv_codes`; triggers `updated_at` | Búsqueda en español, «nuevas» coincidencias reales, reintentos, auditoría de importación, catálogo CPV |
-| `0004_rls.sql`              | Rol `app_user`, funciones `app_*` y políticas RLS en las 14 tablas                                                                                                                                                                                    | Separación entre clientes                                                                              |
-| `0005_import_run_pages.sql` | Tabla interna `import_run_pages` (página, URL, SHA-256, tamaño, clave en S3), sin permisos para `app_user`                                                                                                                                            | Procedencia y reprocesado de importaciones                                                             |
+Resumen de permisos:
 
-### Políticas (resumen)
+| Quién                    | Colonias                           | Gatos / acciones                          | Otros                                                                             |
+| ------------------------ | ---------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------- |
+| Admin de asociación      | Crear, editar, eliminar            | Todo                                      | Invitar, roles, resolver propuestas                                               |
+| Miembro de asociación    | Ver                                | Crear, editar; eliminar lo suyo           | Salir de la organización                                                          |
+| Ayuntamiento (aprobado)  | Ver las de su municipio, autorizar | Ver los de su municipio; validar acciones | Proponer cambios; sus admins invitan                                              |
+| Organización no aprobada | —                                  | —                                         | Solo ve su ficha y su estado                                                      |
+| Superadministrador       | —                                  | —                                         | Aprobar/rechazar/suspender, crear ayuntamientos, invitar a cualquier organización |
 
-- Licitaciones, lotes, fuentes, eventos, organismos, CPV: **lectura pública**, sin escritura.
-- Perfiles de alerta, seguimientos y tareas: CRUD solo dentro de la propia empresa; el
-  responsable asignado debe pertenecer a la empresa.
-- Coincidencias: lectura propia; solo se puede cambiar `feedback`. Las crea el motor.
-- Notificaciones: cada persona ve las suyas; las escribe solo el job.
-- `company_members` y `company_subscriptions`: **solo lectura**. La única forma de crear
-  empresa + rol owner + plan Free es `app_create_company()` (SECURITY DEFINER), que usa
-  el usuario de la sesión. No es posible autoconcederse privilegios ni cambiar el plan.
-- Tablas `auth_*`: sin permisos para `app_user`.
+Todo ello está cubierto por `tests/integration/rls.test.ts` (directamente contra
+PostgreSQL) y `tests/integration/api.test.ts` (a través de la API y el cliente tipado).
 
-Todo ello está cubierto por `tests/integration/rls.test.ts`.
-
-**RGPD / minimización:** el registro solo pide nombre, email y contraseña; el NIF es
-opcional y nunca se pide al registrarse. Los correos de recuperación no revelan si una
-cuenta existe.
+**RGPD / minimización:** el registro solo pide nombre, email y contraseña. Las ubicaciones
+exactas no son públicas. Los nombres de las personas participantes solo los ve su propia
+organización (el ayuntamiento ve cuántas son). Los correos de recuperación no revelan si
+una cuenta existe.
 
 ---
 
-## 4. Ingesta de datos públicos (PLACSP)
-
-Fuente: feed ATOM oficial _«Licitaciones publicadas en la Plataforma de Contratación del
-Sector Público»_ (sindicación 643):
-`https://contrataciondelsectorpublico.gob.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom`.
-Cada `<entry>` es la foto actual de un **expediente** (`ContractFolderStatus`, formato
-CODICE); las publicaciones (`ValidNoticeInfo`) se guardan como `tender_events`; los lotes
-(`ProcurementProjectLot`) como `tender_lots`; los `<at:deleted-entry>` marcan bajas. Las
-páginas se enlazan con `rel="next"` hacia cambios más antiguos.
-
-Los significados de los códigos se transcribieron de las listas genericode oficiales
-que el propio feed referencia (estado, tipo de contrato, procedimiento, tipo de anuncio,
-resultado, tipo de organismo, NUTS, CPV 2008).
-
-- **Idempotencia y duplicados:** clave `(source_platform, external_record_id)` = id
-  numérico de la entrada. Si la versión recibida no es más nueva que la guardada, no se
-  toca. Los eventos tienen id estable `TIPO|medio|fecha` y un índice único.
-- **Cambios relevantes:** estado, plazo, presupuesto, valor estimado y título generan
-  eventos `status_change` / `change_detected` con valores anterior y nuevo.
-- **Errores:** un registro defectuoso o un fallo de red se anotan en
-  `import_runs.errors` sin detener la importación.
-- **Incremental:** se recorre el feed hasta la marca de agua de la última ejecución
-  correcta (`import_runs.high_water_mark`), con un máximo de `IMPORT_MAX_PAGES`.
-- **Presupuestos:** `TaxExclusiveAmount` → presupuesto base sin IVA;
-  `EstimatedOverallContractAmount` → valor estimado; `TotalAmount` (con IVA) en el resumen.
-- **Nuevas fuentes:** implementar `SourceConnector` (`packages/procurement/src/types.ts`)
-  y registrarlo en `apps/worker/src/jobs.ts`. El pipeline no cambia.
-
-No hay datos ficticios en la base de datos: todo procede del feed real. El único fixture
-(`packages/procurement/tests/fixtures/placsp/feed-page-1.atom`) es un extracto literal del feed, usado solo en
-tests y marcado como tal.
-
-### Jobs
-
-El worker (`apps/worker`) los ejecuta según sus horarios; `vp run job <nombre>` (o
-`node apps/worker/dist/cli.mjs <nombre>`) ejecuta uno y termina, útil para pruebas o para
-un planificador externo (cron, Kubernetes CronJob, GitHub Actions…).
-
-| Job       | Horario por defecto (`SCHEDULE_*`) | Qué hace                                                                             |
-| --------- | ---------------------------------- | ------------------------------------------------------------------------------------ |
-| `sync`    | cada 30 min                        | importa cambios → matching de los expedientes nuevos/cambiados → avisos «inmediatos» |
-| `daily`   | diario, 7:00                       | resúmenes diarios                                                                    |
-| `weekly`  | lunes, 7:00                        | resúmenes semanales                                                                  |
-| `rematch` | diario, 3:30                       | recalcula todos los perfiles activos                                                 |
-| `import`  | manual                             | solo importación (`--pages N`, `--full`)                                             |
-
----
-
-## 5. Matching y notificaciones
-
-Motor determinista y barato (`packages/matching`), sin IA de pago:
-
-1. **Filtros duros:** licitación en plazo o anuncio previo; tipo de contrato; palabras
-   excluidas; provincias (o toda España); presupuesto base sin IVA dentro del rango.
-2. **Señales de relevancia** (solo las que el perfil configuró): CPV (contenido en su
-   código, categoría superior o misma familia), palabras clave, y términos de la
-   descripción en lenguaje natural (normalización y stemming ligero en español).
-   Sin al menos una señal clara no hay coincidencia: provincia o importe por sí solos no
-   bastan, ni un CPV solo «de la misma familia».
-3. **Puntuación** `85 × relevancia + 10 × lugar + 5 × presupuesto`, pesos en
-   `config.ts`; se guardan las ≥ 30 en `tender_matches` con la explicación en
-   `match_reason` y los lotes afines en `matched_lot_codes`.
-
-La función `scoreTender` es pura, lista para combinarse con una señal semántica.
-
-**Notificaciones:** cada (persona, perfil, licitación) tiene un `dedupe_key` único en
-`notification_deliveries`. El job reclama filas con `INSERT … ON CONFLICT DO NOTHING`,
-envía un único resumen por persona y empresa, y registra `sent`/`failed`. Los errores
-temporales se reintentan (máx. 3); los permanentes no. Las coincidencias descartadas por
-el usuario no se envían. Hay un correo de prueba en **Ajustes** (máx. 1 por minuto).
-
----
-
-## 6. Estado del MVP
+## 4. Estado del MVP
 
 ### Implementado y verificado
 
-| Funcionalidad                                                                                                                                                                      | Cómo se verificó                                                                   |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Registro, inicio/cierre de sesión, rutas privadas                                                                                                                                  | E2E `journey.spec.ts`                                                              |
-| Recuperación de contraseña (Better Auth + correo)                                                                                                                                  | Prueba manual por API: correo → enlace → nueva clave → login; token de un solo uso |
-| Onboarding de empresa + edición en Ajustes; empresa ↔ usuarios con roles                                                                                                           | E2E + RLS                                                                          |
-| Perfiles de alerta (CRUD, varios por empresa, activar/desactivar, sectores, CPV con sugerencias editables, palabras clave, provincias/toda España, tipos, presupuesto, frecuencia) | E2E + unitarios de validación                                                      |
-| Importación real de PLACSP: 7.112 expedientes, 4.952 lotes, 22.554 eventos sin errores                                                                                             | Ejecución real; reimportación = 0 duplicados                                       |
-| Idempotencia, cambios, bajas, errores aislados, auditoría                                                                                                                          | Integración `ingestion.test.ts`                                                    |
-| Búsqueda con todos los filtros pedidos, orden por fecha/plazo/relevancia/importe, paginación                                                                                       | Manual + E2E                                                                       |
-| Detalle con lotes, organismo, anuncios y cambios, documentos, resultado, procedencia y enlace oficial                                                                              | E2E                                                                                |
-| Matching con explicación, guardado en `tender_matches`, valoración relevante/no relevante                                                                                          | Unitarios + integración + revisión manual de resultados reales                     |
-| Panel con datos reales (nuevas, abiertas, guardadas, vencimientos, tareas, últimos avisos, última importación)                                                                     | E2E                                                                                |
-| Mis licitaciones: guardar/dejar de seguir, estados internos, notas, tareas                                                                                                         | E2E + integración RLS                                                              |
-| Resúmenes diario/semanal/inmediato, sin duplicados, reintentos                                                                                                                     | Integración + ejecución real con mailer `console`                                  |
-| Aislamiento entre empresas y no escalada de privilegios                                                                                                                            | `rls.test.ts` (base de datos) + `api.test.ts` (a través de la API)                 |
-| API Hono: sesión, onboarding, validación con mensajes, errores JSON, CSRF                                                                                                          | `api.test.ts` (Better Auth real + cliente tipado)                                  |
-| Archivo de páginas originales en S3 (comprimido) y procedencia en `import_run_pages`                                                                                               | `archive.test.ts` + `s3.test.ts` (servidor S3 de prueba con firma SigV4)           |
-| Worker: horarios, ejecución puntual, apagado ordenado; builds de API y worker                                                                                                      | Ejecución real (`sync` con PLACSP, `rematch`) desde el código y desde `dist/`      |
-| Responsive (tablas → tarjetas, menú lateral → hoja)                                                                                                                                | E2E móvil (Pixel 7)                                                                |
-| `vp check` (formato, lint, tipos estrictos), `vp build`                                                                                                                            | Sin errores                                                                        |
+| Funcionalidad                                                                                    | Cómo se verificó              |
+| ------------------------------------------------------------------------------------------------ | ----------------------------- |
+| Registro, inicio/cierre de sesión, rutas privadas (la recuperación de contraseña no ha cambiado) | E2E                           |
+| Alta de asociación pendiente → aprobación del superadmin (con aviso por email en ambos sentidos) | Integración API + E2E         |
+| Alta de ayuntamiento por el superadmin + invitación; uno por municipio                           | Integración (RLS y API) + E2E |
+| Invitaciones por email (solo para el email invitado, una organización por persona)               | Integración                   |
+| Equipo: roles, bajas, salir; siempre queda un admin                                              | Integración                   |
+| Colonias con mapa, municipio INE y dirección; lista y vista de mapa                              | E2E                           |
+| Gatos con foto (subida y servida con control de acceso), colonia opcional, fecha aproximada      | Integración + E2E             |
+| Acciones con tipo, estado, urgencia, gatos y participantes; «castrado» derivado de las acciones  | Integración + E2E             |
+| Feed del ayuntamiento, validación y «modificada tras validar»                                    | Integración + E2E             |
+| Autorización de colonias por el ayuntamiento                                                     | Integración + E2E             |
+| Propuestas de cambio (colonia y gato): crear, aceptar (aplica cambios), rechazar, retirar        | Integración + E2E             |
+| Aislamiento entre asociaciones y entre municipios                                                | `rls.test.ts` + `api.test.ts` |
+| Recordatorios diarios sin duplicados                                                             | Integración                   |
+| Responsive (menú lateral → hoja, sin scroll horizontal)                                          | E2E móvil (Pixel 7)           |
+| `vp check`, `vp test`, `vp run build`                                                            | Sin errores                   |
 
 ### Limitaciones conocidas
 
-- **Resend no se ha probado con una clave real** (no había credenciales). El adaptador
-  sigue la API documentada (`POST /emails`); configúralo y usa «Enviar correo de prueba».
-- Solo se usa el feed «perfiles alojados en PLACSP». El feed de plataformas agregadas
-  (CC. AA.) y los ficheros históricos mensuales no están conectados.
-- El texto se compara en castellano; títulos en catalán, euskera o gallego solo encajan
-  por CPV o por palabras clave en ese idioma.
-- La empresa activa es la primera membresía; no hay invitaciones ni selector de empresa.
-- La carga inicial está limitada por `IMPORT_MAX_PAGES` (no trae todo el histórico).
-- El archivo S3 se ha probado contra un servidor S3 de prueba, no contra un proveedor real.
-- La API no tiene aún autenticación por token para apps nativas (añadir el plugin
-  `bearer` de Better Auth cuando exista la app móvil).
+- **Resend no se ha probado con una clave real.** Configúralo y prueba con una invitación.
+- Las teselas de `tile.openstreetmap.org` sirven para uso ligero; con tráfico real usa un
+  proveedor de teselas propio o de pago (cambia la URL en `LocationMap.tsx`).
+- No hay geocodificación: el municipio se elige a mano aunque el punto ya esté en el mapa.
+- No hay registro de actividad (auditoría) más allá de fechas y autores de cada cambio.
+- Los ayuntamientos no pueden registrar acciones propias (p. ej. campañas municipales).
+- La API no tiene autenticación por token para apps nativas (plugin `bearer` de Better Auth).
 
 ### Siguientes pasos recomendados
 
-1. Conector del feed de plataformas agregadas (sindicación 1044) y de TED reutilizando
-   el `SourceConnector`; deduplicación entre fuentes por expediente + órgano.
-2. Invitaciones de usuarios a la empresa (función `SECURITY DEFINER` + email) y selector
-   de empresa.
-3. Avisos de modificaciones y recordatorios de plazo para licitaciones guardadas
-   (los eventos `change_detected` y `notification_type` ya lo permiten).
-4. Señal semántica opcional (embeddings baratos sobre título + descripción) sumada a
-   `scoreTender`, usando el feedback recogido para ajustar pesos.
-5. Planes Free/Starter/Pro con Stripe escribiendo en `company_subscriptions` solo desde
-   un webhook del servidor.
-6. Observabilidad de jobs (alertar si `import_runs` falla varias veces seguidas).
+1. Geocodificación inversa (sugerir municipio y dirección a partir del punto del mapa).
+2. Avisos al ayuntamiento de acciones urgentes nuevas y resumen semanal del feed.
+3. Más fotos por gato y fotos en las acciones (antes/después de una castración).
+4. Exportación CSV/PDF para memorias e informes municipales (castraciones por colonia y año).
+5. Historial de cambios de colonias y gatos.
