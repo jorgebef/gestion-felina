@@ -28,7 +28,7 @@ import { api } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import { confirm } from "@/lib/confirm";
 import { profileQuery, viewerQuery } from "@/lib/queries";
-import { refreshViewer, useSignOut, useViewer } from "@/lib/session";
+import { homeHref, refreshViewer, useSignOut, useViewer } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 function Section({
@@ -422,8 +422,7 @@ function MembershipSection({ viewer, joinedAt }: { viewer: Viewer; joinedAt: str
     mutationFn: () => api().organizations.removeMember(viewer.user.id),
     onSuccess: async () => {
       toast.success("Has salido de la organización");
-      await refreshViewer(queryClient);
-      router.replace("/");
+      router.replace(homeHref(await refreshViewer(queryClient)));
     },
     onError: (e) => toast.error(errorMessage(e)),
   });

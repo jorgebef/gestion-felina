@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
 import { LogOut, MailPlus, Trash2, X } from "lucide-react-native";
 import { useState } from "react";
 import { Text, View } from "react-native";
@@ -98,8 +97,8 @@ export default function Team() {
     mutationFn: (userId: string) => api().organizations.removeMember(userId),
     onSuccess: async (_, userId) => {
       if (userId === viewer.user.id) {
+        // This screen is only for approved members: the root layout leaves it by itself.
         await refreshViewer(queryClient);
-        router.replace("/");
         return;
       }
       toast.success("Persona eliminada de la organización");

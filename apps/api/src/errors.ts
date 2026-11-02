@@ -29,6 +29,14 @@ export function handleError(error: Error, c: Context) {
   if (error instanceof DomainError) return errorResponse(c, error.code, error.message);
   if (error instanceof HTTPException) {
     if (error.status === 413) return errorResponse(c, "VALIDATION", "Petición demasiado grande");
+    // Hono's CSRF middleware: a browser request from an origin not in APP_URL/TRUSTED_ORIGINS.
+    if (error.status === 403) {
+      return errorResponse(
+        c,
+        "FORBIDDEN",
+        "Origen no permitido: abre la aplicación desde su dirección configurada (APP_URL)",
+      );
+    }
     return error.getResponse();
   }
   console.error(`[api] ${c.req.method} ${c.req.path} failed`, error);

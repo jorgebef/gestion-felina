@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
+import type { Href } from "expo-router";
 
 import type { Viewer } from "@felina/client/api";
 
@@ -30,19 +30,39 @@ export function useMembership() {
   };
 }
 
-/** Signs out, forgets every cached query and goes back to the start. */
+/**
+ * Signs out and forgets every cached query. No navigation here: once the viewer is null,
+ * the root layout's `Stack.Protected` guards send the person to the login screen.
+ */
 export function useSignOut() {
   const queryClient = useQueryClient();
   return async () => {
     await authClient.signOut();
-    queryClient.clear();
-    await queryClient.fetchQuery(viewerQuery);
-    router.replace("/");
+    // Set (rather than clear) the viewer so the root navigator stays mounted.
+    queryClient.setQueryData(viewerQuery.queryKey, null);
+    queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== "viewer" });
   };
 }
 
-/** After signing in, accepting an invitation or registering an organization. */
-export async function refreshViewer(queryClient: ReturnType<typeof useQueryClient>) {
+/** Where each person starts, like the web app's `/`. */
+export function homeHref(viewer: Viewer | null): Href {
+  if (!viewer) return "/login";
+  if (viewer.membership?.organization.status === "approved") return "/panel";
+  if (viewer.isPlatformAdmin && !viewer.membership) return "/admin";
+  return "/onboarding";
+}
+
+/**
+ * After signing in, accepting an invitation or changing organization. Returns the fresh
+ * viewer. If the current screen is now behind a `Stack.Protected` guard, the root layout
+ * moves away from it by itself; navigating here as well races with that redirect and can
+ * loop ("Maximum update depth exceeded" on iOS). Screens that stay reachable navigate to
+ * `homeHref(viewer)` directly instead of going through `/`.
+ */
+export async function refreshViewer(
+  queryClient: ReturnType<typeof useQueryClient>,
+): Promise<Viewer | null> {
   queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== "viewer" });
   await queryClient.invalidateQueries({ queryKey: viewerQuery.queryKey });
+  return queryClient.getQueryData(viewerQuery.queryKey) ?? null;
 }

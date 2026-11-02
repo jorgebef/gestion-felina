@@ -65,7 +65,16 @@ export function createApp(options: { log?: boolean } = {}) {
 
   // Cross-origin browser clients must be listed; same-origin calls via the proxy pass.
   app.use("/api/*", cors({ origin: origins, credentials: true }));
-  app.use("/api/*", csrf({ origin: origins }));
+  // Browsers send Origin (and Sec-Fetch-Site) on every cross-site request, so one with
+  // neither is not a forged browser request: it comes from the mobile app (session in a
+  // header, see apps/mobile/src/lib/api.ts) or a script. Hono's CSRF check would reject
+  // those whenever there is no JSON body (bodyless POST/DELETE, photo uploads).
+  const csrfProtection = csrf({ origin: origins });
+  app.use("/api/*", (c, next) =>
+    c.req.header("origin") === undefined && c.req.header("sec-fetch-site") === undefined
+      ? next()
+      : csrfProtection(c, next),
+  );
   // 1 MB per request, except photo uploads.
   const photoLimit = bodyLimit({ maxSize: MAX_PHOTO_BYTES + 64 * 1024 });
   const defaultLimit = bodyLimit({ maxSize: 1024 * 1024 });

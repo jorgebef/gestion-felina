@@ -24,9 +24,11 @@ export default function Login() {
   const authConfig = useQuery(authConfigQuery);
   const [error, setError] = useState<string | null>(null);
 
+  // The root layout's guards leave the login screen once the viewer is known; only an
+  // explicit destination (e.g. an invitation opened before signing in) needs navigating.
   const done = async () => {
     await refreshViewer(queryClient);
-    router.replace(target as "/");
+    if (target !== "/") router.replace(target as "/");
   };
 
   const form = useForm({

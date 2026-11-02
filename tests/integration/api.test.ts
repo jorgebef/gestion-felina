@@ -111,6 +111,22 @@ describeDb("API", () => {
     expect((await request("/api/v1/colonies")).status).toBe(401);
   });
 
+  it("checks the origin of browser requests only", async () => {
+    const accept = (headers: Record<string, string>) =>
+      app.request(`${ORIGIN}/api/v1/invitations/${"t".repeat(43)}/accept`, {
+        method: "POST",
+        headers,
+      });
+    // A bodyless POST from another site is rejected before reaching the route…
+    const forged = await accept({ origin: "https://evil.example", "sec-fetch-site": "cross-site" });
+    expect(forged.status).toBe(403);
+    expect(await forged.json()).toMatchObject({ error: { code: "FORBIDDEN" } });
+    // …while the web app (same origin) and the mobile app (no Origin) get through.
+    expect((await accept({ origin: ORIGIN })).status).toBe(401);
+    expect((await accept({ "sec-fetch-site": "same-origin" })).status).toBe(401);
+    expect((await accept({})).status).toBe(401);
+  });
+
   it("lets every signed-in user read and edit their own profile", async () => {
     expect((await request("/api/v1/me/profile")).status).toBe(401);
 

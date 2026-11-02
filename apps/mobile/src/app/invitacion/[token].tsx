@@ -14,7 +14,7 @@ import { FormError } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { invitationQuery } from "@/lib/queries";
-import { refreshViewer, useViewer } from "@/lib/session";
+import { homeHref, refreshViewer, useViewer } from "@/lib/session";
 
 function Notice({ children }: { children: string }) {
   return (
@@ -31,8 +31,7 @@ export default function Invitation() {
   const accept = useMutation({
     mutationFn: () => api().invitations.accept(token),
     onSuccess: async () => {
-      await refreshViewer(queryClient);
-      router.replace("/");
+      router.replace(homeHref(await refreshViewer(queryClient)));
     },
   });
 
