@@ -79,7 +79,7 @@ test("association and town hall workflow", async ({ browser }) => {
   await ana.getByLabel("Dirección").fill("Calle Marqués de la Valdavia");
   await ana.getByRole("button", { name: "Registrar colonia" }).click();
   await expect(ana.getByRole("heading", { name: "Parque de Andalucía" })).toBeVisible();
-  await expect(ana.getByText("Sin autorizar").first()).toBeVisible();
+  await expect(ana.getByText("Sin validar").first()).toBeVisible();
   const colonyUrl = ana.url();
 
   // --- Cat with photo ------------------------------------------------------------------
@@ -147,12 +147,12 @@ test("association and town hall workflow", async ({ browser }) => {
   await row.getByRole("button", { name: "Validar", exact: true }).click();
   await expect(townHall.getByText("Acción validada")).toBeVisible();
 
-  // Colony → authorize and propose a change.
+  // Colony → validate and propose a change.
   await townHall.goto(colonyUrl, { waitUntil: "networkidle" });
   await expect(townHall.getByText(associationName).first()).toBeVisible();
   await expect(townHall.getByRole("link", { name: "Editar" })).toHaveCount(0);
-  await townHall.getByRole("button", { name: "Autorizar colonia" }).click();
-  await expect(townHall.getByRole("button", { name: "Retirar autorización" })).toBeVisible();
+  await townHall.getByRole("button", { name: "Validar colonia" }).click();
+  await expect(townHall.getByRole("button", { name: "Retirar validación" })).toBeVisible();
   await townHall.getByRole("button", { name: "Proponer cambio" }).click();
   const dialog = townHall.getByRole("dialog");
   await dialog.getByLabel("Nombre").fill("Parque de Andalucía (norte)");
@@ -167,7 +167,7 @@ test("association and town hall workflow", async ({ browser }) => {
   await expect(ana.getByText("Cambios aplicados")).toBeVisible();
   await ana.goto(colonyUrl, { waitUntil: "networkidle" });
   await expect(ana.getByRole("heading", { name: "Parque de Andalucía (norte)" })).toBeVisible();
-  await expect(ana.getByText("Autorizada").first()).toBeVisible();
+  await expect(ana.getByText("Validada").first()).toBeVisible();
 
   // --- Own profile, from the user menu ------------------------------------------------------
   await ana.getByRole("button", { name: anaEmail }).click();

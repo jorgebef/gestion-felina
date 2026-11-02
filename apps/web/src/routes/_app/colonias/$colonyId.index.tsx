@@ -43,7 +43,7 @@ function ColonyDetail() {
   const authorize = useMutation({
     mutationFn: (authorized: boolean) => api().colonies.setAuthorization(colonyId, authorized),
     onSuccess: async (_, authorized) => {
-      toast.success(authorized ? "Colonia autorizada" : "Autorización retirada");
+      toast.success(authorized ? "Colonia validada" : "Validación retirada");
       await queryClient.invalidateQueries({ queryKey: ["colonies"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
@@ -80,12 +80,12 @@ function ColonyDetail() {
                   disabled={authorize.isPending}
                 >
                   {authorize.isPending ? <Loader2 className="animate-spin" /> : <Undo2 />}
-                  Retirar autorización
+                  Retirar validación
                 </Button>
               ) : (
                 <Button onClick={() => authorize.mutate(true)} disabled={authorize.isPending}>
                   {authorize.isPending ? <Loader2 className="animate-spin" /> : <BadgeCheck />}
-                  Autorizar colonia
+                  Validar colonia
                 </Button>
               )
             ) : null}
@@ -136,10 +136,10 @@ function ColonyDetail() {
                   ),
                 },
                 {
-                  label: "Autorización del ayuntamiento",
+                  label: "Validación del ayuntamiento",
                   value: colony.authorizedAt
-                    ? `Autorizada el ${formatDate(colony.authorizedAt)}`
-                    : "Sin autorizar",
+                    ? `Validada el ${formatDate(colony.authorizedAt)}`
+                    : "Sin validar",
                 },
                 { label: "Actualizada", value: formatDateTime(colony.updatedAt) },
               ]}

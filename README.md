@@ -16,7 +16,7 @@ Plataforma SaaS para **asociaciones** de voluntariado felino y **ayuntamientos**
   Los demás **solicitan** la eliminación, que queda pendiente hasta que un administrador la
   aprueba o la rechaza (con aviso por email en ambos sentidos).
 - **Colonias**: una única asociación gestora, ubicación exacta (coordenadas), municipio INE
-  y dirección opcional. El ayuntamiento del municipio puede **autorizarlas**.
+  y dirección opcional. El ayuntamiento del municipio puede **validarlas**.
 - **Gatos**: siempre de una organización, con o sin colonia, foto principal obligatoria,
   sexo, fecha de nacimiento (desconocida o aproximada) y ubicación con municipio.
 - **Acciones** (castración, veterinario, captura, suelta, alimentación, otro): de una
@@ -112,9 +112,9 @@ dependen de `db` ni de `core`.
   además comprueba rol y tipo de organización para dar errores claros.
 - **Operaciones sensibles como funciones `SECURITY DEFINER`** que comprueban quién llama:
   registrar una asociación, aceptar una invitación, aprobar/rechazar/suspender
-  organizaciones, autorizar colonias y validar acciones. Nadie puede autoasignarse un rol,
-  unirse a una organización sin invitación, autorizar sus propias colonias ni validarse
-  sus acciones.
+  organizaciones, validar colonias y acciones. Nadie puede autoasignarse un rol,
+  unirse a una organización sin invitación ni validarse sus propias colonias o
+  acciones.
 - **Una persona, una organización**: `organization_members.user_id` es la clave primaria.
 - **Un ayuntamiento por municipio**: índice único parcial sobre `organizations`.
 - **Municipio = código INE** (`municipalities`, 8.132 municipios a 1/1/2025). Es lo que
@@ -124,7 +124,7 @@ dependen de `db` ni de `core`.
   Se conserva aunque se borre la colonia, así el feed del ayuntamiento no pierde historia.
 - **Validación sin sorpresas**: si la asociación modifica una acción ya validada, sigue
   validada pero el feed la marca como «Validada · modificada». Si una colonia o acción
-  cambia de municipio, su autorización/validación se anula.
+  cambia de municipio, su validación se anula.
 - **Propuestas de cambio**: el ayuntamiento envía solo los campos que cambian; se guardan
   los valores anteriores para mostrar el «antes → después». Las aceptan o rechazan los
   administradores de la asociación; al aceptarlas se aplican en la misma transacción.
@@ -195,7 +195,7 @@ Resumen de permisos:
 | Admin de asociación      | Crear, editar, eliminar              | Todo                                                                            | Invitar, roles, gestores, resolver propuestas y solicitudes de eliminación        |
 | Gestor de una colonia    | Editar la suya; solicitar eliminarla | Gatos de su colonia: crear, editar; acciones: crear, editar; solicitar eliminar | Salir de la organización                                                          |
 | Miembro de asociación    | Ver                                  | Gatos sin colonia y acciones: crear, editar; solicitar eliminar                 | Salir de la organización                                                          |
-| Ayuntamiento (aprobado)  | Ver las de su municipio, autorizar   | Ver los de su municipio; validar acciones                                       | Proponer cambios; sus admins invitan                                              |
+| Ayuntamiento (aprobado)  | Ver las de su municipio, validar     | Ver los de su municipio; validar acciones                                       | Proponer cambios; sus admins invitan                                              |
 | Organización no aprobada | —                                    | —                                                                               | Solo ve su ficha y su estado                                                      |
 | Superadministrador       | —                                    | —                                                                               | Aprobar/rechazar/suspender, crear ayuntamientos, invitar a cualquier organización |
 
@@ -224,7 +224,7 @@ una cuenta existe.
 | Gatos con foto (subida y servida con control de acceso), colonia opcional, fecha aproximada      | Integración + E2E             |
 | Acciones con tipo, estado, urgencia, gatos y participantes; «castrado» derivado de las acciones  | Integración + E2E             |
 | Feed del ayuntamiento, validación y «modificada tras validar»                                    | Integración + E2E             |
-| Autorización de colonias por el ayuntamiento                                                     | Integración + E2E             |
+| Validación de colonias por el ayuntamiento                                                       | Integración + E2E             |
 | Propuestas de cambio (colonia y gato): crear, aceptar (aplica cambios), rechazar, retirar        | Integración + E2E             |
 | Aislamiento entre asociaciones y entre municipios                                                | `rls.test.ts` + `api.test.ts` |
 | Gestores de colonia y eliminaciones validadas por un administrador                               | `rls.test.ts` + `api.test.ts` |

@@ -62,11 +62,11 @@ export function ValidationBadge({
 export function AuthorizationBadge({ authorizedAt }: { authorizedAt: string | null }) {
   return authorizedAt ? (
     <Pill tone="positive" icon={BadgeCheck}>
-      Autorizada
+      Validada
     </Pill>
   ) : (
     <Pill tone="muted" icon={Clock}>
-      Sin autorizar
+      Sin validar
     </Pill>
   );
 }

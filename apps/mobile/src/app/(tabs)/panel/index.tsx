@@ -91,9 +91,7 @@ export default function Dashboard() {
           <Stat
             label={isTownHall ? "Colonias en el municipio" : "Colonias"}
             value={data?.colonies.total}
-            detail={
-              data ? pluralize(data.colonies.authorized, "autorizada", "autorizadas") : undefined
-            }
+            detail={data ? pluralize(data.colonies.authorized, "validada", "validadas") : undefined}
             href="/colonias"
           />
           <Stat

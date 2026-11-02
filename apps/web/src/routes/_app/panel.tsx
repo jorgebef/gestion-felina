@@ -80,7 +80,7 @@ function Dashboard() {
         <Stat
           label={townHall ? "Colonias en el municipio" : "Colonias"}
           value={data.colonies.total}
-          detail={pluralize(data.colonies.authorized, "autorizada", "autorizadas")}
+          detail={pluralize(data.colonies.authorized, "validada", "validadas")}
           to="/colonias"
         />
         <Stat

@@ -101,12 +101,12 @@ export function AuthorizationBadge({ authorizedAt }: { authorizedAt: string | Da
   return authorizedAt ? (
     <Pill tone="positive">
       <BadgeCheck className="size-3" />
-      Autorizada
+      Validada
     </Pill>
   ) : (
     <Pill tone="muted">
       <Clock className="size-3" />
-      Sin autorizar
+      Sin validar
     </Pill>
   );
 }

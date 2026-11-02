@@ -21,7 +21,7 @@ import { coloniesQuery } from "@/lib/queries";
 import { useMembership } from "@/lib/session";
 import { useDebounced } from "@/lib/use-debounced";
 
-const AUTHORIZATION = { all: "Todas", yes: "Autorizadas", no: "Sin autorizar" } as const;
+const AUTHORIZATION = { all: "Todas", yes: "Validadas", no: "Sin validar" } as const;
 const VIEWS = { list: "Lista", map: "Mapa" } as const;
 
 export default function Colonies() {

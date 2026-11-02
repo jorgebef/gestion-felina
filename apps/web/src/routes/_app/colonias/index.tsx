@@ -79,7 +79,7 @@ function Colonies() {
           />
         </form>
         <Select
-          items={{ all: "Todas", yes: "Autorizadas", no: "Sin autorizar" }}
+          items={{ all: "Todas", yes: "Validadas", no: "Sin validar" }}
           value={search.authorized ?? "all"}
           onValueChange={(v) =>
             void navigate({
@@ -87,13 +87,13 @@ function Colonies() {
             })
           }
         >
-          <SelectTrigger className="w-full bg-card sm:w-48" aria-label="Autorización">
+          <SelectTrigger className="w-full bg-card sm:w-48" aria-label="Validación">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
-            <SelectItem value="yes">Autorizadas</SelectItem>
-            <SelectItem value="no">Sin autorizar</SelectItem>
+            <SelectItem value="yes">Validadas</SelectItem>
+            <SelectItem value="no">Sin validar</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex rounded-lg border bg-card p-0.5" role="group" aria-label="Vista">

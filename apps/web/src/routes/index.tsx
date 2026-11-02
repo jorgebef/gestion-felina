@@ -45,8 +45,8 @@ const ASSOCIATION_FEATURES = [
 const TOWN_HALL_FEATURES = [
   {
     icon: BadgeCheck,
-    title: "Autoriza colonias",
-    body: "Ve todas las colonias de tu municipio y márcalas como autorizadas.",
+    title: "Valida colonias",
+    body: "Ve todas las colonias de tu municipio y márcalas como validadas.",
   },
   {
     icon: ClipboardList,
@@ -93,9 +93,9 @@ function Landing() {
             Las colonias felinas de tu municipio, gestionadas y coordinadas en un solo sitio.
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-            Las asociaciones registran colonias, gatos y acciones. El ayuntamiento las autoriza,
-            valida lo que se hace y propone cambios. Cada organización se aprueba manualmente antes
-            de empezar.
+            Las asociaciones registran colonias, gatos y acciones. El ayuntamiento valida las
+            colonias y las acciones, y propone cambios. Cada organización se aprueba manualmente
+            antes de empezar.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link

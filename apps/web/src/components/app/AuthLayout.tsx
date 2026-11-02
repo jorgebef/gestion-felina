@@ -13,7 +13,7 @@ const POINTS = [
   {
     icon: Landmark,
     title: "Coordinación con tu ayuntamiento",
-    body: "El ayuntamiento autoriza colonias, valida acciones y propone cambios.",
+    body: "El ayuntamiento valida colonias y acciones, y propone cambios.",
   },
   {
     icon: ShieldCheck,
