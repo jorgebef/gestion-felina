@@ -14,6 +14,8 @@ export interface MapMarker {
   longitude: number;
   label: string;
   tone?: "brand" | "muted" | "positive";
+  /** Shown inside the marker (e.g. a colony's cats); a plain dot without it. */
+  count?: number;
 }
 
 export interface LatLng {
@@ -23,13 +25,27 @@ export interface LatLng {
 
 const SPAIN_CENTER: [number, number] = [40.2, -3.7];
 
-function pinIcon(L: typeof Leaflet, tone: MapMarker["tone"] = "brand") {
+function pinIcon(L: typeof Leaflet, tone: MapMarker["tone"] = "brand", count?: number) {
+  if (count === undefined) {
+    return L.divIcon({
+      className: "",
+      html: `<div class="map-pin" data-tone="${tone}"></div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
+    });
+  }
+  const text = countLabel(count);
+  const width = Math.max(26, 12 + text.length * 7);
   return L.divIcon({
     className: "",
-    html: `<div class="map-pin" data-tone="${tone}"></div>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
+    html: `<div class="map-pin map-pin-count" data-tone="${tone}">${text}</div>`,
+    iconSize: [width, 26],
+    iconAnchor: [width / 2, 13],
   });
+}
+
+function countLabel(count: number): string {
+  return count > 999 ? "999+" : String(count);
 }
 
 export function LocationMap({
@@ -84,13 +100,15 @@ export function LocationMap({
   }, []);
 
   // Markers.
-  const markerKey = markers.map((m) => `${m.id}:${m.latitude}:${m.longitude}:${m.tone}`).join("|");
+  const markerKey = markers
+    .map((m) => `${m.id}:${m.latitude}:${m.longitude}:${m.tone}:${m.count}`)
+    .join("|");
   useEffect(() => {
     const s = state.current;
     if (!ready || !s) return;
     s.layer.clearLayers();
     for (const m of markers) {
-      s.L.marker([m.latitude, m.longitude], { icon: pinIcon(s.L, m.tone), title: m.label })
+      s.L.marker([m.latitude, m.longitude], { icon: pinIcon(s.L, m.tone, m.count), title: m.label })
         .bindTooltip(m.label)
         .on("click", () => callbacks.current.onMarkerClick?.(m.id))
         .addTo(s.layer);

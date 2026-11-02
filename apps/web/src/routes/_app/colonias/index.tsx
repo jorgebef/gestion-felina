@@ -153,8 +153,9 @@ function Colonies() {
             id: c.id,
             latitude: c.latitude,
             longitude: c.longitude,
-            label: c.name,
+            label: `${c.name} · ${pluralize(c.catCount, "gato", "gatos")}`,
             tone: c.authorizedAt ? "positive" : "brand",
+            count: c.catCount,
           }))}
           onMarkerClick={(colonyId) =>
             void navigate({ to: "/colonias/$colonyId", params: { colonyId } })

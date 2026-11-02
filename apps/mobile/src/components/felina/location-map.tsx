@@ -8,7 +8,7 @@ import { isRunningInExpoGo } from "expo";
 import Constants from "expo-constants";
 import { MapPinOff } from "lucide-react-native";
 import { useEffect, useRef } from "react";
-import { Platform, View } from "react-native";
+import { Platform, Text as NativeText, View } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
 import { useCSSVariable } from "uniwind";
 
@@ -24,6 +24,8 @@ export interface MapMarker {
   /** Second line of the marker's callout. */
   description?: string;
   tone?: "brand" | "muted" | "positive";
+  /** Shown inside the marker (e.g. a colony's cats); a plain dot without it. */
+  count?: number;
 }
 
 export interface LatLng {
@@ -43,23 +45,53 @@ const MAPS_AVAILABLE =
 const SPAIN: Region = { latitude: 40.2, longitude: -3.7, latitudeDelta: 9, longitudeDelta: 9 };
 const CLOSE = { latitudeDelta: 0.005, longitudeDelta: 0.005 };
 
-function Pin({ color }: { color: string }) {
+const pinShadow = {
+  borderColor: "#fff",
+  shadowColor: "#1c1917",
+  shadowOpacity: 0.45,
+  shadowRadius: 2,
+  shadowOffset: { width: 0, height: 1 },
+  elevation: 3,
+} as const;
+
+function Pin({ color, count }: { color: string; count?: number }) {
+  if (count === undefined) {
+    return (
+      <View
+        style={{
+          ...pinShadow,
+          width: 18,
+          height: 18,
+          borderRadius: 9,
+          backgroundColor: color,
+          borderWidth: 3,
+        }}
+      />
+    );
+  }
   return (
-    <View
-      style={{
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        backgroundColor: color,
-        borderWidth: 3,
-        borderColor: "#fff",
-        shadowColor: "#1c1917",
-        shadowOpacity: 0.45,
-        shadowRadius: 2,
-        shadowOffset: { width: 0, height: 1 },
-        elevation: 3,
-      }}
-    />
+    // Padding around the badge keeps the shadow inside the marker's snapshot.
+    <View style={{ padding: 3 }}>
+      <View
+        style={{
+          ...pinShadow,
+          minWidth: 26,
+          height: 26,
+          paddingHorizontal: 6,
+          borderRadius: 13,
+          backgroundColor: color,
+          borderWidth: 2,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <NativeText
+          style={{ color: "#fff", fontSize: 12, fontWeight: "700", fontVariant: ["tabular-nums"] }}
+        >
+          {count > 999 ? "999+" : count}
+        </NativeText>
+      </View>
+    </View>
   );
 }
 
@@ -133,14 +165,15 @@ export function LocationMap({
       >
         {markers.map((m) => (
           <Marker
-            key={m.id}
+            // A new key re-renders the marker's image when its count changes.
+            key={`${m.id}:${m.count}`}
             coordinate={m}
             title={m.label}
             description={m.description}
             tracksViewChanges={false}
             onCalloutPress={onMarkerPress ? () => onMarkerPress(m.id) : undefined}
           >
-            <Pin color={colors[m.tone ?? "brand"]} />
+            <Pin color={colors[m.tone ?? "brand"]} count={m.count} />
           </Marker>
         ))}
         {picked ? (

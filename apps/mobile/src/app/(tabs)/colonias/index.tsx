@@ -109,6 +109,7 @@ export default function Colonies() {
             label: c.name,
             description: pluralize(c.catCount, "gato", "gatos"),
             tone: c.authorizedAt ? "positive" : "brand",
+            count: c.catCount,
           }))}
           onMarkerPress={(id) => router.push(`/colonias/${id}`)}
         />
