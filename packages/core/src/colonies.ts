@@ -62,7 +62,11 @@ export function listColonies(ctx: OrgContext, query: ColonyListQuery) {
         authorizedAt: colonies.authorizedAt,
         catCount,
         pendingProposals,
-        lastActionAt: sql<string | null>`${lastActionAt}`,
+        // Raw SQL timestamps arrive as Postgres text ("2026-11-02 17:12:48+01"); send ISO 8601
+        // like every other date (not every JS engine parses the Postgres form, e.g. Hermes).
+        lastActionAt: sql<string | null>`${lastActionAt}`.mapWith((v: string | null) =>
+          v === null ? null : new Date(v).toISOString(),
+        ),
         createdAt: colonies.createdAt,
       })
       .from(colonies)

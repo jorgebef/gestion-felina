@@ -1,0 +1,22 @@
+{
+  "name": "@felina/client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Client-side logic shared by the web and mobile apps: API access, TanStack Query options, formatting and user-facing messages.",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@felina/api-client": "workspace:*",
+    "@felina/domain": "workspace:*",
+    "@felina/schemas": "workspace:*"
+  },
+  "devDependencies": {
+    "@felina/api": "workspace:*",
+    "@tanstack/react-query": "5.104.5"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.104.5"
+  }
+}

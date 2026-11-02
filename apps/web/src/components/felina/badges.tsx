@@ -13,18 +13,15 @@ import {
   type ProposalStatus,
 } from "@felina/domain/felina";
 
+import {
+  ACTION_STATUS_TONE,
+  ORGANIZATION_STATUS_TONE,
+  PROPOSAL_STATUS_TONE,
+  TONE_STYLES,
+  type Tone,
+} from "@felina/client/tones";
+
 import { cn } from "@/lib/utils";
-
-type Tone = "neutral" | "brand" | "positive" | "warning" | "negative" | "muted";
-
-const TONES: Record<Tone, string> = {
-  neutral: "border-border bg-card text-foreground",
-  brand: "border-brand/20 bg-brand-soft text-brand-strong",
-  positive: "border-positive/20 bg-positive-soft text-positive",
-  warning: "border-warning/20 bg-warning-soft text-warning",
-  negative: "border-negative/20 bg-negative-soft text-negative",
-  muted: "border-border bg-muted text-muted-foreground",
-};
 
 export function Pill({
   tone = "neutral",
@@ -42,7 +39,8 @@ export function Pill({
       title={title}
       className={cn(
         "inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap",
-        TONES[tone],
+        TONE_STYLES[tone].box,
+        TONE_STYLES[tone].text,
         className,
       )}
     >
@@ -50,13 +48,6 @@ export function Pill({
     </span>
   );
 }
-
-const ACTION_STATUS_TONE: Record<ActionStatus, Tone> = {
-  planned: "brand",
-  in_progress: "warning",
-  done: "positive",
-  cancelled: "muted",
-};
 
 export function ActionStatusBadge({ status }: { status: ActionStatus }) {
   return <Pill tone={ACTION_STATUS_TONE[status]}>{ACTION_STATUS_LABELS[status]}</Pill>;
@@ -117,26 +108,12 @@ export function AuthorizationBadge({ authorizedAt }: { authorizedAt: string | Da
   );
 }
 
-const ORG_STATUS_TONE: Record<OrganizationStatus, Tone> = {
-  pending: "warning",
-  approved: "positive",
-  rejected: "negative",
-  suspended: "negative",
-};
-
 export function OrganizationStatusBadge({ status }: { status: OrganizationStatus }) {
-  return <Pill tone={ORG_STATUS_TONE[status]}>{ORGANIZATION_STATUS_LABELS[status]}</Pill>;
+  return <Pill tone={ORGANIZATION_STATUS_TONE[status]}>{ORGANIZATION_STATUS_LABELS[status]}</Pill>;
 }
 
-const PROPOSAL_TONE: Record<ProposalStatus, Tone> = {
-  pending: "warning",
-  accepted: "positive",
-  rejected: "negative",
-  withdrawn: "muted",
-};
-
 export function ProposalStatusBadge({ status }: { status: ProposalStatus }) {
-  return <Pill tone={PROPOSAL_TONE[status]}>{PROPOSAL_STATUS_LABELS[status]}</Pill>;
+  return <Pill tone={PROPOSAL_STATUS_TONE[status]}>{PROPOSAL_STATUS_LABELS[status]}</Pill>;
 }
 
 export function SexLabel({ sex }: { sex: CatSex }) {

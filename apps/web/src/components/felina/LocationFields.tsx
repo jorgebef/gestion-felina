@@ -2,31 +2,14 @@ import { Crosshair, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 import { isInSpain } from "@felina/domain/felina";
+import { roundCoordinate, type LocationValue } from "@felina/client/location";
 
 import { Field } from "@/components/forms/Field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { LocationMap, type MapMarker } from "./LocationMap";
-import { MunicipalityPicker, type MunicipalityValue } from "./MunicipalityPicker";
-
-export interface LocationValue {
-  latitude: number | null;
-  longitude: number | null;
-  municipality: MunicipalityValue | null;
-  address: string;
-}
-
-export const emptyLocation: LocationValue = {
-  latitude: null,
-  longitude: null,
-  municipality: null,
-  address: "",
-};
-
-function round(value: number) {
-  return Math.round(value * 1e6) / 1e6;
-}
+import { MunicipalityPicker } from "./MunicipalityPicker";
 
 /**
  * Exact location (pin on the map, or the device's position), the INE municipality and an
@@ -54,7 +37,11 @@ export function LocationFields({
       : null;
 
   const setPoint = (latitude: number, longitude: number) =>
-    onChange({ ...value, latitude: round(latitude), longitude: round(longitude) });
+    onChange({
+      ...value,
+      latitude: roundCoordinate(latitude),
+      longitude: roundCoordinate(longitude),
+    });
 
   const locate = () => {
     if (!("geolocation" in navigator)) {
@@ -149,33 +136,4 @@ export function LocationFields({
   );
 }
 
-/** Location fields as the API expects them, or the per-field errors. */
-export function locationPayload(value: LocationValue):
-  | {
-      ok: true;
-      data: {
-        latitude: number;
-        longitude: number;
-        municipalityCode: string;
-        address: string | null;
-      };
-    }
-  | { ok: false; errors: { coordinates?: string; municipality?: string } } {
-  const errors: { coordinates?: string; municipality?: string } = {};
-  if (value.latitude === null || value.longitude === null) {
-    errors.coordinates = "Marca la ubicación en el mapa";
-  } else if (!isInSpain(value.latitude, value.longitude)) {
-    errors.coordinates = "La ubicación debe estar en España";
-  }
-  if (!value.municipality) errors.municipality = "Elige el municipio";
-  if (errors.coordinates || errors.municipality) return { ok: false, errors };
-  return {
-    ok: true,
-    data: {
-      latitude: value.latitude!,
-      longitude: value.longitude!,
-      municipalityCode: value.municipality!.code,
-      address: value.address.trim() || null,
-    },
-  };
-}
+export { emptyLocation, locationPayload, type LocationValue } from "@felina/client/location";

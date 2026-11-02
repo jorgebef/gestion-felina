@@ -15,7 +15,7 @@ import {
 } from "@felina/db";
 import type { MemberRole } from "@felina/domain/felina";
 import { sendSafely } from "@felina/notifications/mailer";
-import { appUrl, invitationEmail, newOrganizationEmail } from "@felina/notifications/templates";
+import { invitationEmail, newOrganizationEmail } from "@felina/notifications/templates";
 import type {
   AssociationRegistration,
   InvitationInput,
@@ -31,6 +31,7 @@ import {
   type OrgContext,
   type UserContext,
 } from "./context.ts";
+import { invitationUrl, sealInvitationToken, withInvitationUrl } from "./invitation-links.ts";
 
 export const INVITATION_DAYS = 14;
 
@@ -242,6 +243,7 @@ export async function createInvitationIn(
       email: data.email,
       role: data.role,
       tokenHash: hashToken(token),
+      tokenCiphertext: sealInvitationToken(token),
       invitedBy: inviter.id,
       expiresAt: new Date(Date.now() + INVITATION_DAYS * 86_400_000),
     })
@@ -255,7 +257,7 @@ export async function createInvitationIn(
           organizationName: organization.name,
           inviterName: inviter.name || null,
           role: data.role,
-          url: appUrl(`/invitacion/${token}`),
+          url: invitationUrl(token),
           expiresInDays: INVITATION_DAYS,
         }),
       ),
@@ -271,9 +273,9 @@ export async function inviteMember(ctx: OrgContext, data: InvitationInput) {
   return { id: invitation.id, emailSent };
 }
 
-export function listInvitations(ctx: OrgContext) {
+export async function listInvitations(ctx: OrgContext) {
   assertAdmin(ctx);
-  return withTenant(ctx.user.id, (tx) =>
+  const rows = await withTenant(ctx.user.id, (tx) =>
     tx
       .select({
         id: organizationInvitations.id,
@@ -281,6 +283,7 @@ export function listInvitations(ctx: OrgContext) {
         role: organizationInvitations.role,
         expiresAt: organizationInvitations.expiresAt,
         createdAt: organizationInvitations.createdAt,
+        tokenCiphertext: organizationInvitations.tokenCiphertext,
       })
       .from(organizationInvitations)
       .where(
@@ -292,6 +295,7 @@ export function listInvitations(ctx: OrgContext) {
       )
       .orderBy(desc(organizationInvitations.createdAt)),
   );
+  return rows.map(withInvitationUrl);
 }
 
 export async function revokeInvitation(ctx: UserContext, id: string) {

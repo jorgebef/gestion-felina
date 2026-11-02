@@ -1,3 +1,4 @@
+import { expo } from "@better-auth/expo";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
@@ -11,6 +12,9 @@ const env = apiEnv();
 
 export const isGoogleAuthEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 
+/** Deep-link scheme of the mobile app (apps/mobile/app.json → expo.scheme). */
+export const MOBILE_APP_SCHEME = "gestionfelina";
+
 // An origin without a path (validated in ./env.ts): Better Auth would otherwise use the
 // path as its base path instead of /api/auth.
 const baseURL = env.BETTER_AUTH_URL ?? env.APP_URL;
@@ -22,6 +26,9 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   trustedOrigins: [
     env.APP_URL,
+    // The mobile app (apps/mobile) sends its scheme as origin; Expo Go uses exp://.
+    `${MOBILE_APP_SCHEME}://`,
+    ...(process.env.NODE_ENV === "production" ? [] : ["exp://", "exp://**"]),
     ...(env.TRUSTED_ORIGINS?.split(",")
       .map((o) => o.trim())
       .filter(Boolean) ?? []),
@@ -53,6 +60,9 @@ export const auth = betterAuth({
     },
   },
   rateLimit: { enabled: true, window: 60, max: 30 },
+  // Sessions for the mobile app: cookies stored in the device's secure storage and sent
+  // back as a header, plus OAuth redirects to the app's scheme.
+  plugins: [expo()],
   socialProviders:
     env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
       ? { google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET } }

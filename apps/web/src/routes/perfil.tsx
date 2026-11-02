@@ -34,6 +34,7 @@ import { api, type Viewer } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage, errorMessage } from "@/lib/errors";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { describeDevice } from "@felina/client/devices";
 import { profileQuery, viewerQuery } from "@/lib/queries";
 
 /**
@@ -363,38 +364,6 @@ function CreatePasswordByEmail({ email, usesGoogle }: { email: string; usesGoogl
 /* ------------------------------ Sessions ---------------------------------- */
 
 const sessionsQueryKey = ["auth", "sessions"] as const;
-
-/** "Chrome en macOS" from a user agent string (good enough to recognise a device). */
-function describeDevice(userAgent: string | null | undefined): { label: string; mobile: boolean } {
-  const ua = userAgent ?? "";
-  if (!ua) return { label: "Dispositivo desconocido", mobile: false };
-  const browser = /Edg\//.test(ua)
-    ? "Edge"
-    : /OPR\/|Opera/.test(ua)
-      ? "Opera"
-      : /Firefox\//.test(ua)
-        ? "Firefox"
-        : /Chrome\//.test(ua)
-          ? "Chrome"
-          : /Safari\//.test(ua)
-            ? "Safari"
-            : "Navegador";
-  const os = /iPhone|iPad|iPod/.test(ua)
-    ? "iOS"
-    : /Android/.test(ua)
-      ? "Android"
-      : /Mac OS X|Macintosh/.test(ua)
-        ? "macOS"
-        : /Windows/.test(ua)
-          ? "Windows"
-          : /Linux/.test(ua)
-            ? "Linux"
-            : null;
-  return {
-    label: os ? `${browser} en ${os}` : browser,
-    mobile: /Mobi|iPhone|Android/.test(ua),
-  };
-}
 
 function SessionsSection() {
   const queryClient = useQueryClient();

@@ -11,6 +11,7 @@ import { APP_NAME } from "@/components/brand/Logo";
 import { ErrorState, PageHeader } from "@/components/app/states";
 import { RowsSkeleton } from "@/components/app/skeletons";
 import { Pill } from "@/components/felina/badges";
+import { InvitationLink } from "@/components/felina/InvitationLink";
 import { Field } from "@/components/forms/Field";
 import {
   AlertDialog,
@@ -175,21 +176,24 @@ function Team() {
                 <h3 className="mt-6 text-sm font-medium">Invitaciones pendientes</h3>
                 <ul className="mt-2 divide-y rounded-lg border text-sm">
                   {invitations.data.map((inv) => (
-                    <li key={inv.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                      <span className="min-w-0">
-                        <span className="block truncate">{inv.email}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {MEMBER_ROLE_LABELS[inv.role]} · caduca el {formatDate(inv.expiresAt)}
+                    <li key={inv.id} className="space-y-2 px-3 py-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="min-w-0">
+                          <span className="block truncate">{inv.email}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {MEMBER_ROLE_LABELS[inv.role]} · caduca el {formatDate(inv.expiresAt)}
+                          </span>
                         </span>
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => revoke.mutate(inv.id)}
-                        disabled={revoke.isPending}
-                      >
-                        <X /> Anular
-                      </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => revoke.mutate(inv.id)}
+                          disabled={revoke.isPending}
+                        >
+                          <X /> Anular
+                        </Button>
+                      </div>
+                      <InvitationLink url={inv.url} />
                     </li>
                   ))}
                 </ul>

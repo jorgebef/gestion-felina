@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "GestiónFelina",
+    "slug": "gestion-felina",
+    "scheme": "gestionfelina",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "es.gestionfelina.app",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "es.gestionfelina.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#F7F6F3",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "GestiónFelina usa tus fotos para la foto principal de cada gato.",
+          "cameraPermission": "GestiónFelina usa la cámara para fotografiar a los gatos."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "GestiónFelina usa tu ubicación para situar colonias y gatos en el mapa."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -1,0 +1,224 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, router, Stack, useLocalSearchParams } from "expo-router";
+import { BadgeCheck, Cat, ClipboardList, Pencil, Plus, Trash2, Undo2 } from "lucide-react-native";
+import { Text, View } from "react-native";
+import { toast } from "sonner-native";
+
+import { errorMessage } from "@felina/client/errors";
+import { formatDate, formatDateTime } from "@felina/client/format";
+
+import { Screen } from "@/components/app/screen";
+import { CardsSkeleton, CatCardsSkeleton, RowsSkeleton } from "@/components/app/skeletons";
+import {
+  EmptyState,
+  ErrorState,
+  Facts,
+  LoadingState,
+  PageHeader,
+  SectionTitle,
+} from "@/components/app/states";
+import { ActionRow } from "@/components/felina/action-row";
+import { AuthorizationBadge } from "@/components/felina/badges";
+import { CatGrid } from "@/components/felina/cat-card";
+import { LocationMap } from "@/components/felina/location-map";
+import { ProposalList } from "@/components/felina/proposals";
+import { ProposeChangeSheet } from "@/components/felina/propose-change-sheet";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { api } from "@/lib/api";
+import { confirm } from "@/lib/confirm";
+import { colonyQuery, proposalsQuery } from "@/lib/queries";
+import { useMembership } from "@/lib/session";
+
+export default function ColonyDetail() {
+  const { colonyId } = useLocalSearchParams<{ colonyId: string }>();
+  const { isAdmin, isAssociation } = useMembership();
+  const query = useQuery(colonyQuery(colonyId));
+  const proposals = useQuery(proposalsQuery({ colonyId }));
+  const queryClient = useQueryClient();
+
+  const authorize = useMutation({
+    mutationFn: (authorized: boolean) => api().colonies.setAuthorization(colonyId, authorized),
+    onSuccess: async (_, authorized) => {
+      toast.success(authorized ? "Colonia autorizada" : "Autorización retirada");
+      await queryClient.invalidateQueries({ queryKey: ["colonies"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  const remove = useMutation({
+    mutationFn: () => api().colonies.delete(colonyId),
+    onSuccess: async () => {
+      toast.success("Colonia eliminada");
+      router.back();
+      await queryClient.invalidateQueries();
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+
+  if (query.isPending) return <LoadingState />;
+  if (query.isError) {
+    return (
+      <Screen>
+        <ErrorState error={query.error} onRetry={() => void query.refetch()} />
+      </Screen>
+    );
+  }
+  const { colony, permissions } = query.data;
+  const isFetching = query.isFetching;
+
+  return (
+    <Screen onRefresh={() => Promise.all([query.refetch(), proposals.refetch()])}>
+      <Stack.Screen options={{ title: colony.name }} />
+      <PageHeader
+        eyebrow={<AuthorizationBadge authorizedAt={colony.authorizedAt} />}
+        title={colony.name}
+        description={[colony.address, colony.municipalityName].filter(Boolean).join(" · ")}
+        actions={
+          <>
+            {permissions.canAuthorize ? (
+              colony.authorizedAt ? (
+                <Button
+                  variant="outline"
+                  icon={Undo2}
+                  loading={authorize.isPending}
+                  onPress={() => authorize.mutate(false)}
+                >
+                  Retirar autorización
+                </Button>
+              ) : (
+                <Button
+                  icon={BadgeCheck}
+                  loading={authorize.isPending}
+                  onPress={() => authorize.mutate(true)}
+                >
+                  Autorizar colonia
+                </Button>
+              )
+            ) : null}
+            {permissions.canPropose ? (
+              <ProposeChangeSheet target={{ type: "colony", id: colony.id, current: colony }} />
+            ) : null}
+            {permissions.canEdit ? (
+              <Link href={`/colonias/${colonyId}/editar`} asChild>
+                <Button variant="outline" icon={Pencil}>
+                  Editar
+                </Button>
+              </Link>
+            ) : null}
+            {permissions.canDelete ? (
+              <Button
+                variant="ghost"
+                tone="negative"
+                icon={Trash2}
+                loading={remove.isPending}
+                onPress={async () => {
+                  const ok = await confirm({
+                    title: `¿Eliminar «${colony.name}»?`,
+                    message:
+                      "Sus gatos seguirán en la asociación, sin colonia. Las acciones conservan su historial. No se puede deshacer.",
+                    confirmLabel: "Eliminar",
+                  });
+                  if (ok) remove.mutate();
+                }}
+              >
+                Eliminar
+              </Button>
+            ) : null}
+          </>
+        }
+      />
+
+      <LocationMap
+        label="Ubicación de la colonia"
+        className="h-56"
+        picked={{ latitude: colony.latitude, longitude: colony.longitude }}
+      />
+
+      <Card className="gap-4 p-5">
+        <Facts
+          items={[
+            { label: "Asociación gestora", value: colony.organizationName ?? "—" },
+            { label: "Municipio", value: colony.municipalityName },
+            { label: "Dirección", value: colony.address ?? "—" },
+            {
+              label: "Coordenadas",
+              value: `${colony.latitude.toFixed(6)}, ${colony.longitude.toFixed(6)}`,
+            },
+            {
+              label: "Autorización del ayuntamiento",
+              value: colony.authorizedAt
+                ? `Autorizada el ${formatDate(colony.authorizedAt)}`
+                : "Sin autorizar",
+            },
+            { label: "Actualizada", value: formatDateTime(colony.updatedAt) },
+          ]}
+        />
+        {colony.description ? (
+          <Text className="text-sm text-foreground">{colony.description}</Text>
+        ) : null}
+      </Card>
+
+      <View className="gap-3">
+        <View className="flex-row items-center justify-between gap-2">
+          <SectionTitle icon={Cat}>
+            {isFetching ? "Gatos" : `Gatos (${query.data.cats.length})`}
+          </SectionTitle>
+          {permissions.canAddCats ? (
+            <Link href={{ pathname: "/gatos/nuevo", params: { colonyId } }} asChild>
+              <Button size="sm" variant="outline" icon={Plus}>
+                Añadir gato
+              </Button>
+            </Link>
+          ) : null}
+        </View>
+        {isFetching ? (
+          <CatCardsSkeleton cards={4} />
+        ) : query.data.cats.length ? (
+          <CatGrid cats={query.data.cats} />
+        ) : (
+          <EmptyState icon={Cat} title="Sin gatos registrados en esta colonia" />
+        )}
+      </View>
+
+      <View className="gap-3">
+        <View className="flex-row items-center justify-between gap-2">
+          <SectionTitle icon={ClipboardList}>Acciones</SectionTitle>
+          {permissions.canAddCats ? (
+            <Link href={{ pathname: "/acciones/nueva", params: { colonyId } }} asChild>
+              <Button size="sm" variant="outline" icon={Plus}>
+                Nueva acción
+              </Button>
+            </Link>
+          ) : null}
+        </View>
+        {isFetching ? (
+          <RowsSkeleton badges rows={3} label="Cargando acciones…" />
+        ) : query.data.actions.length ? (
+          <Card>
+            {query.data.actions.map((a, i) => (
+              <ActionRow key={a.id} action={a} first={i === 0} />
+            ))}
+          </Card>
+        ) : (
+          <Text className="text-sm text-muted-foreground">Sin acciones todavía.</Text>
+        )}
+      </View>
+
+      <View className="gap-3">
+        <SectionTitle>Propuestas de cambio</SectionTitle>
+        {proposals.isPending || proposals.isFetching ? (
+          <CardsSkeleton cards={1} label="Cargando propuestas…" />
+        ) : proposals.data?.length ? (
+          <ProposalList proposals={proposals.data} canResolve={isAdmin && isAssociation} />
+        ) : (
+          <Text className="text-sm text-muted-foreground">
+            {permissions.canPropose
+              ? "Si algún dato no es correcto, propón el cambio a la asociación gestora."
+              : "El ayuntamiento no ha propuesto cambios."}
+          </Text>
+        )}
+      </View>
+    </Screen>
+  );
+}

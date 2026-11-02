@@ -13,6 +13,7 @@
   "dependencies": {
     "@base-ui/react": "^1.9.0",
     "@felina/api-client": "workspace:*",
+    "@felina/client": "workspace:*",
     "@felina/domain": "workspace:*",
     "@felina/schemas": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",

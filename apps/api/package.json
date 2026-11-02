@@ -12,6 +12,7 @@
     "start": "node dist/index.mjs"
   },
   "dependencies": {
+    "@better-auth/expo": "1.7.12",
     "@felina/core": "workspace:*",
     "@felina/db": "workspace:*",
     "@felina/domain": "workspace:*",

@@ -2,17 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown, Loader2, MapPin } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 
+import type { MunicipalityValue } from "@felina/client/location";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { api } from "@/lib/api";
+import { municipalitySearchQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
-export interface MunicipalityValue {
-  code: string;
-  name: string;
-  provinceName?: string;
-}
+export type { MunicipalityValue } from "@felina/client/location";
 
 function useDebounced<T>(value: T, ms: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -41,12 +39,7 @@ export function MunicipalityPicker({
   const [term, setTerm] = useState("");
   const q = useDebounced(term.trim(), 200);
   const listId = useId();
-  const results = useQuery({
-    queryKey: ["municipalities", q],
-    queryFn: () => api().municipalities.search(q),
-    enabled: open && q.length >= 2,
-    staleTime: Infinity,
-  });
+  const results = useQuery({ ...municipalitySearchQuery(q), enabled: open && q.length >= 2 });
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

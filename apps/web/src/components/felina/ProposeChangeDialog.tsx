@@ -3,7 +3,14 @@ import { GitPullRequestArrow, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { CAT_SEXES, CAT_SEX_LABELS, type CatSex } from "@felina/domain/felina";
+import { CAT_SEXES, CAT_SEX_LABELS } from "@felina/domain/felina";
+import {
+  changesFrom,
+  initialDraft,
+  str,
+  type Draft,
+  type ProposalTarget,
+} from "@felina/client/proposals";
 import { catChangesSchema, colonyChangesSchema } from "@felina/schemas/proposal";
 
 import { Field, FormError } from "@/components/forms/Field";
@@ -33,88 +40,7 @@ import { errorMessage } from "@/lib/errors";
 
 import { MunicipalityPicker, type MunicipalityValue } from "./MunicipalityPicker";
 
-interface Common {
-  name: string | null;
-  description: string | null;
-  address: string | null;
-  latitude: number;
-  longitude: number;
-  municipalityCode: string;
-  municipalityName: string;
-}
-
-export type ProposalTarget =
-  | { type: "colony"; id: string; current: Common & { name: string } }
-  | {
-      type: "cat";
-      id: string;
-      current: Common & {
-        sex: CatSex;
-        birthDate: string | null;
-        birthDateApproximate: boolean;
-        sterilized: boolean;
-      };
-    };
-
-type Draft = Record<string, unknown>;
-
-/** Text value of a draft field (strings and numbers; anything else is empty). */
-function str(value: unknown): string {
-  return typeof value === "string" ? value : typeof value === "number" ? String(value) : "";
-}
-
-function initialDraft(target: ProposalTarget): Draft {
-  const c = target.current;
-  return {
-    name: c.name ?? "",
-    description: c.description ?? "",
-    address: c.address ?? "",
-    latitude: String(c.latitude),
-    longitude: String(c.longitude),
-    municipality: { code: c.municipalityCode, name: c.municipalityName } as MunicipalityValue,
-    ...(target.type === "cat"
-      ? {
-          sex: target.current.sex,
-          birthDate: target.current.birthDate ?? "",
-          birthDateApproximate: target.current.birthDateApproximate,
-          sterilized: target.current.sterilized,
-        }
-      : {}),
-  };
-}
-
-/** Only fields that differ from the current values are sent. */
-function changesFrom(target: ProposalTarget, draft: Draft): Record<string, unknown> {
-  const c = target.current as unknown as Record<string, unknown>;
-  const out: Record<string, unknown> = {};
-  const text = (key: string) => {
-    const value = str(draft[key]).trim();
-    const normalized = value || null;
-    if (normalized !== (c[key] ?? null)) out[key] = normalized;
-  };
-  text("name");
-  text("description");
-  text("address");
-  const lat = Number(draft.latitude);
-  const lng = Number(draft.longitude);
-  if (lat !== c.latitude || lng !== c.longitude) {
-    out.latitude = lat;
-    out.longitude = lng;
-  }
-  const municipality = draft.municipality as MunicipalityValue | null;
-  if (municipality && municipality.code !== c.municipalityCode)
-    out.municipalityCode = municipality.code;
-  if (target.type === "cat") {
-    if (draft.sex !== c.sex) out.sex = draft.sex;
-    const birthDate = str(draft.birthDate) || null;
-    if (birthDate !== (c.birthDate ?? null)) out.birthDate = birthDate;
-    if (draft.birthDateApproximate !== c.birthDateApproximate) {
-      out.birthDateApproximate = draft.birthDateApproximate;
-    }
-    if (draft.sterilized !== c.sterilized) out.sterilized = draft.sterilized;
-  }
-  return out;
-}
+export type { ProposalTarget } from "@felina/client/proposals";
 
 /** Town halls propose changes; the managing association decides. */
 export function ProposeChangeDialog({ target }: { target: ProposalTarget }) {

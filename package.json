@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vp run --parallel --filter @felina/api --filter @felina/web dev",
     "dev:worker": "vp run --filter @felina/worker dev",
+    "dev:mobile": "vp run --filter @felina/mobile dev",
     "build": "vp run -r build",
     "db:migrate": "vp run --filter @felina/db migrate",
     "db:seed": "vp run --filter @felina/db seed",
@@ -18,6 +19,7 @@
   "devDependencies": {
     "@felina/api": "workspace:*",
     "@felina/api-client": "workspace:*",
+    "@felina/client": "workspace:*",
     "@felina/core": "workspace:*",
     "@felina/db": "workspace:*",
     "@felina/domain": "workspace:*",

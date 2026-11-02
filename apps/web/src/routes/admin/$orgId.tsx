@@ -17,6 +17,7 @@ import { APP_NAME } from "@/components/brand/Logo";
 import { Facts, PageHeader } from "@/components/app/states";
 import { RowsSkeleton } from "@/components/app/skeletons";
 import { OrganizationStatusBadge } from "@/components/felina/badges";
+import { InvitationLink } from "@/components/felina/InvitationLink";
 import { Field, FormError } from "@/components/forms/Field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -167,10 +168,14 @@ function AdminOrganization() {
             {!isFetching && data.invitations.length ? (
               <div className="border-t px-5 py-3">
                 <h3 className="text-sm font-medium">Invitaciones abiertas</h3>
-                <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                <ul className="mt-2 space-y-3 text-sm text-muted-foreground">
                   {data.invitations.map((i) => (
-                    <li key={i.id}>
-                      {i.email} · {MEMBER_ROLE_LABELS[i.role]} · caduca el {formatDate(i.expiresAt)}
+                    <li key={i.id} className="space-y-1.5">
+                      <p>
+                        {i.email} · {MEMBER_ROLE_LABELS[i.role]} · caduca el{" "}
+                        {formatDate(i.expiresAt)}
+                      </p>
+                      <InvitationLink url={i.url} />
                     </li>
                   ))}
                 </ul>

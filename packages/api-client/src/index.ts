@@ -38,6 +38,13 @@ export class ApiError extends Error {
   }
 }
 
+/** A local file as React Native's `FormData` expects it (e.g. from expo-image-picker). */
+export interface NativeFile {
+  uri: string;
+  name: string;
+  type: string;
+}
+
 export interface ApiOptions {
   /** Origin serving `/api/v1` (the web app's origin when going through its proxy). */
   baseUrl: string;
@@ -156,10 +163,13 @@ export function createApi(options: ApiOptions) {
       /** URL of the main photo; `version` (e.g. updatedAt) busts the browser cache. */
       photoUrl: (id: string, version?: string) =>
         `${base}/cats/${id}/photo${version ? `?v=${encodeURIComponent(version)}` : ""}`,
-      /** Uploads a photo and returns the `photoKey` to send with the cat. */
-      uploadPhoto: async (file: Blob): Promise<{ photoKey: string }> => {
+      /**
+       * Uploads a photo and returns the `photoKey` to send with the cat. Browsers pass a
+       * `Blob`/`File`; React Native passes the picked image's `{ uri, name, type }`.
+       */
+      uploadPhoto: async (file: Blob | NativeFile): Promise<{ photoKey: string }> => {
         const form = new FormData();
-        form.append("file", file);
+        form.append("file", file as Blob);
         const headers = (await options.headers?.()) ?? {};
         return unwrap(
           doFetch(`${base}/uploads/photos`, {

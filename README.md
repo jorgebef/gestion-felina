@@ -53,6 +53,7 @@ shell tiene prioridad (`DATABASE_URL=… vp run dev`).
 | ------------------------------- | -------------------------------------------------------------------------- |
 | `vp run dev`                    | Web (Vite, :3000) y API (tsx watch, :3001) en paralelo                     |
 | `vp run dev:worker`             | Worker con su horario (`SCHEDULE_REMINDERS`)                               |
+| `vp run dev:mobile`             | App móvil (Expo): Metro para Expo Go o un development build                |
 | `vp run job reminders`          | Envía una vez los recordatorios del día                                    |
 | `vp run admin:grant <email>`    | Concede (o con `--revoke` retira) el rol de superadministrador             |
 | `vp run build`                  | Build de web (`apps/web/.output`), API (`apps/api/dist`) y worker          |
@@ -74,6 +75,7 @@ apps/
   web/            @felina/web     TanStack Start: solo UI. Proxy same-origin /api/* → API
   api/            @felina/api     Hono: /api/auth/* (Better Auth) y /api/v1/* (API de la app)
   worker/         @felina/worker  Jobs programados (croner) + CLI de ejecución puntual
+  mobile/         @felina/mobile  App iOS/Android (Expo SDK 58, Expo Router): cliente de la API
 packages/
   db/             @felina/db            Drizzle (schema.ts refleja el SQL), withTenant() para RLS,
                                         migraciones SQL, municipios INE, admin:grant
@@ -85,11 +87,16 @@ packages/
   api-client/     @felina/api-client    Cliente tipado de /api/v1 (tipos inferidos de las rutas Hono)
   notifications/  @felina/notifications Correo (Resend/console), plantillas, recordatorios
   storage/        @felina/storage       Fotos: S3 compatible o disco local
+  client/         @felina/client        Lógica de cliente compartida por web y móvil: opciones de
+                                        TanStack Query, formateo, mensajes de error, tonos de
+                                        insignias, ubicación, propuestas
+  theme/          @felina/theme         Paleta (tokens Tailwind v4) de la app móvil, igual que la web
 tests/            integration (RLS + API completa) · e2e (recorrido completo y móvil)
 ```
 
 Dependencias (sin ciclos): `domain` ← `schemas`, `db` ← `storage`, `notifications` ← `core`
-← `api` ← `api-client` (solo tipos) ← `web`. La web **no** depende de `db` ni de `core`.
+← `api` ← `api-client` (solo tipos) ← `client` ← `web` y `mobile`. Ni la web ni el móvil
+dependen de `db` ni de `core`.
 
 **Decisiones principales**
 
@@ -119,6 +126,51 @@ Dependencias (sin ciclos): `domain` ← `schemas`, `db` ← `storage`, `notifica
   tipo detectado por los bytes, máx. 8 MB) y se sirven por la API solo a quien puede ver el
   gato. La clave incluye la organización y se comprueba al guardar.
 - **Mapas** con Leaflet + teselas de OpenStreetMap, cargados solo en el navegador.
+
+### App móvil (`apps/mobile`)
+
+Misma funcionalidad que la web, con las herramientas equivalentes en React Native:
+
+| Web                                 | Móvil                                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------ |
+| TanStack Router (rutas en ficheros) | Expo Router (rutas en ficheros, pestañas y pilas nativas)                            |
+| TanStack Query, Form, Zod           | Los mismos; consultas y validación compartidas (`@felina/client`, `@felina/schemas`) |
+| Tailwind v4 + shadcn (Base UI)      | Uniwind (Tailwind v4) + controles nativos de `@expo/ui`                              |
+| Better Auth (cookies)               | Better Auth + `@better-auth/expo` (sesión en el llavero/Keystore)                    |
+| Leaflet                             | `react-native-maps` (Apple Maps / Google Maps)                                       |
+| sonner, lucide-react                | sonner-native, lucide-react-native                                                   |
+
+- La app habla con el mismo origen que el navegador (`EXPO_PUBLIC_API_URL`, la web, que
+  reenvía `/api/*`). Copia `apps/mobile/.env.example` a `apps/mobile/.env.local`. Con el
+  emulador de Android: `adb reverse tcp:3000 tcp:3000` y `http://localhost:3000`.
+- La API confía en el esquema `gestionfelina://` (y en `exp://` fuera de producción) para
+  las sesiones de la app.
+- Los enlaces de los emails (invitaciones, nueva contraseña) siguen abriendo la web; en la
+  app, la invitación se puede pegar en la pantalla de bienvenida.
+
+#### Expo Go y development builds (compilación local, sin EAS)
+
+`android/` e `ios/` no se versionan: `expo prebuild` los genera a partir de `app.json` y
+`app.config.ts` (Continuous Native Generation). Desde `apps/mobile`:
+
+| Comando                | Qué hace                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `vp run dev:mobile`    | Metro para el development build (con `s` cambia a Expo Go)                      |
+| `pnpm dev:go`          | Metro directamente en modo Expo Go                                              |
+| `pnpm android` / `ios` | Genera el proyecto nativo, compila e instala el dev build en emulador/simulador |
+| `pnpm android:device`  | Igual, eligiendo un dispositivo conectado (`ios:device` para iPhone)            |
+| `pnpm android:release` | Build release en un dispositivo, sin Metro (`ios:release` para iPhone)          |
+| `pnpm prebuild`        | Regenera `android/` e `ios/` desde cero                                         |
+
+- El dev build solo se recompila al cambiar dependencias nativas, plugins o
+  `app.json`/`app.config.ts`; el JavaScript llega siempre desde Metro.
+- `GOOGLE_MAPS_ANDROID_API_KEY` (en `.env.local`) es necesaria para los mapas en los
+  builds de Android; Expo Go e iOS no la necesitan. Sin ella se muestra un aviso en lugar
+  del mapa.
+- En un iPhone o un Android por Wi-Fi, `EXPO_PUBLIC_API_URL` debe ser la IP de tu Mac en la
+  red local (y la web debe escuchar en la red); por USB en Android basta `adb reverse`.
+- iOS en dispositivo físico: firma con tu Apple ID en Xcode (equipo «Personal Team» vale,
+  pero el perfil caduca a los 7 días) y activa el Modo desarrollador en el iPhone.
 
 ---
 

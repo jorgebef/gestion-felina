@@ -1,0 +1,40 @@
+/*
+ * GestiónFelina palette: warm neutrals and a terracotta brand, a field tool used by
+ * volunteers and town halls. Same values as the :root variables in
+ * apps/web/src/styles.css (packages/theme/tests/tokens.test.ts keeps them in sync).
+ */
+@theme {
+  --color-brand: #b4530a;
+  --color-brand-strong: #8a3c06;
+  --color-brand-soft: #fcefe2;
+  --color-positive: #0f7a43;
+  --color-positive-soft: #e6f5ec;
+  --color-warning: #a8590b;
+  --color-warning-soft: #fdf2e3;
+  --color-negative: #c2261d;
+  --color-negative-soft: #fcebea;
+
+  --color-background: #f7f6f3;
+  --color-foreground: #1c1917;
+  --color-card: #ffffff;
+  --color-card-foreground: #1c1917;
+  --color-primary: #b4530a;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f1eee9;
+  --color-secondary-foreground: #1c1917;
+  --color-muted: #f2efea;
+  --color-muted-foreground: #6b625a;
+  --color-accent: #f2eee8;
+  --color-accent-foreground: #1c1917;
+  --color-destructive: #c2261d;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e7e2da;
+  --color-input: #ddd6cc;
+  --color-ring: #b4530a;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+}

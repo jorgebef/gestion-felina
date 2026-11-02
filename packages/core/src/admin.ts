@@ -20,6 +20,7 @@ import type {
 } from "@felina/schemas/organization";
 
 import { assertPlatformAdmin, DomainError, mapDbError, type UserContext } from "./context.ts";
+import { withInvitationUrl } from "./invitation-links.ts";
 import { createInvitationIn } from "./organizations.ts";
 
 export function listOrganizations(ctx: UserContext, query: OrganizationListQuery) {
@@ -109,6 +110,7 @@ export function getOrganizationDetail(ctx: UserContext, id: string) {
         role: organizationInvitations.role,
         expiresAt: organizationInvitations.expiresAt,
         createdAt: organizationInvitations.createdAt,
+        tokenCiphertext: organizationInvitations.tokenCiphertext,
       })
       .from(organizationInvitations)
       .where(
@@ -119,7 +121,7 @@ export function getOrganizationDetail(ctx: UserContext, id: string) {
         ),
       )
       .orderBy(desc(organizationInvitations.createdAt));
-    return { organization: org, members, invitations };
+    return { organization: org, members, invitations: invitations.map(withInvitationUrl) };
   });
 }
 

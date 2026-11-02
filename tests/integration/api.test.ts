@@ -230,6 +230,13 @@ describeDb("API", () => {
     const invitationEmail = mail.sent.at(-1)!;
     expect(invitationEmail.to).toBe("concejalia@madrid.test");
     const token = tokenFrom(invitationEmail.text);
+    // The super admin can copy the same link again from the organization's page.
+    expect((await root.admin.organization(townHall.id)).invitations).toEqual([
+      expect.objectContaining({
+        email: "concejalia@madrid.test",
+        url: `http://localhost:3000/invitacion/${token}`,
+      }),
+    ]);
     expect((await clientFor("").public.invitation(token)).organizationName).toBe(
       "Ayuntamiento de Madrid",
     );
@@ -377,8 +384,17 @@ describeDb("API", () => {
     // --- Members and invitations ------------------------------------------------------
     const invite = await ana.organizations.invite({ email: "voluntaria@example.test" });
     expect(invite.emailSent).toBe(true);
+    const memberToken = tokenFrom(mail.sent.at(-1)!.text);
+    // The open invitation shows the emailed link, in case the email gets lost.
+    expect(await ana.organizations.invitations()).toEqual([
+      expect.objectContaining({
+        email: "voluntaria@example.test",
+        url: `http://localhost:3000/invitacion/${memberToken}`,
+      }),
+    ]);
     const voluntaria = clientFor(await signUp("voluntaria@example.test"));
-    await voluntaria.invitations.accept(tokenFrom(mail.sent.at(-1)!.text));
+    await voluntaria.invitations.accept(memberToken);
+    expect(await ana.organizations.invitations()).toEqual([]);
     expect((await ana.organizations.members()).map((m) => [m.email, m.role])).toEqual([
       ["ana@example.test", "admin"],
       ["voluntaria@example.test", "member"],

@@ -141,6 +141,8 @@ export const organizationInvitations = pgTable("organization_invitations", {
   email: text("email").notNull(),
   role: text("role").$type<MemberRole>().notNull().default("member"),
   tokenHash: text("token_hash").notNull().unique(),
+  /** The token encrypted with the server secret, so admins can copy the link again. */
+  tokenCiphertext: text("token_ciphertext"),
   invitedBy: uuid("invited_by").references(() => users.id, { onDelete: "set null" }),
   expiresAt: ts("expires_at").notNull(),
   acceptedAt: ts("accepted_at"),

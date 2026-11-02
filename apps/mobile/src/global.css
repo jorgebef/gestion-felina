@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@import "uniwind";
+@import "@felina/theme/tokens.css";
+
+/* Class names in shared code (e.g. badge tones in @felina/client). */
+@source "../../../packages/client/src";

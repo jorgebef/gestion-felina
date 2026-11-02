@@ -1,5 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
+/* Class names in shared code (badge tones in @felina/client). */
+@source "../../../packages/client/src";
 @plugin '@tailwindcss/typography';
 
 @import "tw-animate-css";

@@ -4,13 +4,8 @@ import { Check, Loader2, Undo2, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import {
-  CAT_PROPOSABLE_FIELDS,
-  CAT_SEX_LABELS,
-  COLONY_PROPOSABLE_FIELDS,
-  catDisplayName,
-  type CatSex,
-} from "@felina/domain/felina";
+import { CAT_SEX_LABELS, catDisplayName, type CatSex } from "@felina/domain/felina";
+import { PROPOSAL_FIELD_LABELS } from "@felina/client/proposals";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,19 +14,16 @@ import type { Api, ApiData } from "@felina/api-client";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { municipalityQuery } from "@/lib/queries";
 
 import { ProposalStatusBadge } from "./badges";
 
 export type Proposal = ApiData<Api["proposals"]["list"]>[number];
 
-const LABELS: Record<string, string> = { ...COLONY_PROPOSABLE_FIELDS, ...CAT_PROPOSABLE_FIELDS };
+const LABELS = PROPOSAL_FIELD_LABELS;
 
 function MunicipalityName({ code }: { code: string }) {
-  const { data } = useQuery({
-    queryKey: ["municipality", code],
-    queryFn: () => api().municipalities.get(code),
-    staleTime: Infinity,
-  });
+  const { data } = useQuery(municipalityQuery(code));
   return <>{data ? `${data.name} (${data.provinceName})` : code}</>;
 }
 
