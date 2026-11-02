@@ -211,6 +211,59 @@ export function proposalResolvedEmail({
   });
 }
 
+export function deletionRequestedEmail({
+  to,
+  requesterName,
+  targetLabel,
+  reason,
+  url,
+}: {
+  to: string;
+  requesterName: string;
+  targetLabel: string;
+  reason: string | null;
+  url: string;
+}): EmailMessage {
+  return simpleEmail({
+    to,
+    subject: `Solicitud de eliminación: ${targetLabel}`,
+    title: "Solicitud de eliminación",
+    paragraphs: [
+      `${requesterName} pide eliminar ${targetLabel}. No se elimina hasta que una persona administradora de tu asociación lo apruebe.`,
+      ...(reason ? [`Motivo: ${reason}`] : []),
+    ],
+    action: { url, label: "Revisar solicitud" },
+  });
+}
+
+export function deletionResolvedEmail({
+  to,
+  targetLabel,
+  approved,
+  note,
+  url,
+}: {
+  to: string;
+  targetLabel: string;
+  approved: boolean;
+  note: string | null;
+  url: string;
+}): EmailMessage {
+  const title = approved ? "Eliminación aprobada" : "Eliminación rechazada";
+  return simpleEmail({
+    to,
+    subject: `${title.toLowerCase()}: ${targetLabel}`,
+    title,
+    paragraphs: [
+      approved
+        ? `Se ha aprobado tu solicitud: se ha eliminado ${targetLabel}.`
+        : `Se ha rechazado tu solicitud para eliminar ${targetLabel}, que se mantiene.`,
+      ...(note ? [`Comentario: ${note}`] : []),
+    ],
+    action: { url, label: approved ? "Ver solicitudes" : "Ver detalle" },
+  });
+}
+
 export interface ReminderAction {
   id: string;
   name: string;

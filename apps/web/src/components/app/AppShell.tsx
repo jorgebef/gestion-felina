@@ -11,6 +11,7 @@ import {
   Newspaper,
   Settings,
   ShieldCheck,
+  Trash2,
   UserRound,
   Users,
   type LucideIcon,
@@ -48,6 +49,7 @@ type NavTarget =
   | "/gatos"
   | "/acciones"
   | "/propuestas"
+  | "/eliminaciones"
   | "/equipo"
   | "/ajustes"
   | "/admin";
@@ -71,8 +73,10 @@ function navFor(viewer: Viewer): NavItem[] {
     );
     if (kind === "association")
       items.push({ to: "/acciones", label: "Acciones", icon: ClipboardList });
+    items.push({ to: "/propuestas", label: "Propuestas", icon: GitPullRequestArrow });
+    if (kind === "association")
+      items.push({ to: "/eliminaciones", label: "Eliminaciones", icon: Trash2 });
     items.push(
-      { to: "/propuestas", label: "Propuestas", icon: GitPullRequestArrow },
       { to: "/equipo", label: "Equipo", icon: Users },
       { to: "/ajustes", label: "Ajustes", icon: Settings },
     );

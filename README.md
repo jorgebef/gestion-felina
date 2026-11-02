@@ -7,8 +7,14 @@ Plataforma SaaS para **asociaciones** de voluntariado felino y **ayuntamientos**
   registran solas (quedan pendientes); los ayuntamientos **no se registran**: los da de
   alta el superadministrador (uno por municipio) e invita a su responsable.
 - Los **administradores** de cada organización invitan y eliminan personas y cambian roles.
-  En una asociación, además, crean, editan y eliminan colonias y resuelven las propuestas
-  del ayuntamiento.
+  En una asociación, además, crean colonias, nombran a sus **gestores** y resuelven las
+  propuestas del ayuntamiento.
+- **Gestores de colonia**: miembros de la asociación que editan una colonia y registran o
+  editan sus gatos. Los administradores son gestores de todas; el resto de miembros solo
+  las ve. Los gatos sin colonia y las acciones los gestiona cualquier miembro.
+- **Eliminaciones validadas**: solo los administradores eliminan colonias, gatos y acciones.
+  Los demás **solicitan** la eliminación, que queda pendiente hasta que un administrador la
+  aprueba o la rechaza (con aviso por email en ambos sentidos).
 - **Colonias**: una única asociación gestora, ubicación exacta (coordenadas), municipio INE
   y dirección opcional. El ayuntamiento del municipio puede **autorizarlas**.
 - **Gatos**: siempre de una organización, con o sin colonia, foto principal obligatoria,
@@ -176,20 +182,22 @@ Misma funcionalidad que la web, con las herramientas equivalentes en React Nativ
 
 ## 3. Base de datos y seguridad
 
-| Migración         | Contenido                                                                                                                                                                          |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `0001_schema.sql` | Tablas, restricciones, triggers de integridad (misma organización en colonia/gato/acción, participantes miembros, al menos un admin, colonias/gatos/acciones solo de asociaciones) |
-| `0002_rls.sql`    | Rol `app_user`, funciones `app_*`, políticas RLS en todas las tablas                                                                                                               |
+| Migración                                | Contenido                                                                                                                                                                          |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0001_schema.sql`                        | Tablas, restricciones, triggers de integridad (misma organización en colonia/gato/acción, participantes miembros, al menos un admin, colonias/gatos/acciones solo de asociaciones) |
+| `0002_rls.sql`                           | Rol `app_user`, funciones `app_*`, políticas RLS en todas las tablas                                                                                                               |
+| `0005_colony_managers_and_deletions.sql` | Gestores de colonia, solicitudes de eliminación y las políticas RLS que los aplican                                                                                                |
 
 Resumen de permisos:
 
-| Quién                    | Colonias                           | Gatos / acciones                          | Otros                                                                             |
-| ------------------------ | ---------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------- |
-| Admin de asociación      | Crear, editar, eliminar            | Todo                                      | Invitar, roles, resolver propuestas                                               |
-| Miembro de asociación    | Ver                                | Crear, editar; eliminar lo suyo           | Salir de la organización                                                          |
-| Ayuntamiento (aprobado)  | Ver las de su municipio, autorizar | Ver los de su municipio; validar acciones | Proponer cambios; sus admins invitan                                              |
-| Organización no aprobada | —                                  | —                                         | Solo ve su ficha y su estado                                                      |
-| Superadministrador       | —                                  | —                                         | Aprobar/rechazar/suspender, crear ayuntamientos, invitar a cualquier organización |
+| Quién                    | Colonias                             | Gatos / acciones                                                                | Otros                                                                             |
+| ------------------------ | ------------------------------------ | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Admin de asociación      | Crear, editar, eliminar              | Todo                                                                            | Invitar, roles, gestores, resolver propuestas y solicitudes de eliminación        |
+| Gestor de una colonia    | Editar la suya; solicitar eliminarla | Gatos de su colonia: crear, editar; acciones: crear, editar; solicitar eliminar | Salir de la organización                                                          |
+| Miembro de asociación    | Ver                                  | Gatos sin colonia y acciones: crear, editar; solicitar eliminar                 | Salir de la organización                                                          |
+| Ayuntamiento (aprobado)  | Ver las de su municipio, autorizar   | Ver los de su municipio; validar acciones                                       | Proponer cambios; sus admins invitan                                              |
+| Organización no aprobada | —                                    | —                                                                               | Solo ve su ficha y su estado                                                      |
+| Superadministrador       | —                                    | —                                                                               | Aprobar/rechazar/suspender, crear ayuntamientos, invitar a cualquier organización |
 
 Todo ello está cubierto por `tests/integration/rls.test.ts` (directamente contra
 PostgreSQL) y `tests/integration/api.test.ts` (a través de la API y el cliente tipado).
@@ -219,6 +227,7 @@ una cuenta existe.
 | Autorización de colonias por el ayuntamiento                                                     | Integración + E2E             |
 | Propuestas de cambio (colonia y gato): crear, aceptar (aplica cambios), rechazar, retirar        | Integración + E2E             |
 | Aislamiento entre asociaciones y entre municipios                                                | `rls.test.ts` + `api.test.ts` |
+| Gestores de colonia y eliminaciones validadas por un administrador                               | `rls.test.ts` + `api.test.ts` |
 | Recordatorios diarios sin duplicados                                                             | Integración                   |
 | Responsive (menú lateral → hoja, sin scroll horizontal)                                          | E2E móvil (Pixel 7)           |
 | `vp check`, `vp test`, `vp run build`                                                            | Sin errores                   |

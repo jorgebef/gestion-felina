@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
-import { BadgeCheck, Cat, ClipboardList, Loader2, Pencil, Plus, Trash2, Undo2 } from "lucide-react";
+import { BadgeCheck, Cat, ClipboardList, Loader2, Pencil, Plus, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { APP_NAME } from "@/components/brand/Logo";
@@ -9,20 +9,11 @@ import { CardsSkeleton, CatCardsSkeleton, RowsSkeleton } from "@/components/app/
 import { ActionRow } from "@/components/felina/ActionRow";
 import { AuthorizationBadge } from "@/components/felina/badges";
 import { CatCard } from "@/components/felina/CatCard";
+import { ColonyManagers } from "@/components/felina/ColonyManagers";
+import { DeleteOrRequestButton, PendingDeletionNotice } from "@/components/felina/Deletion";
 import { LocationMap } from "@/components/felina/LocationMap";
 import { ProposalList } from "@/components/felina/Proposals";
 import { ProposeChangeDialog } from "@/components/felina/ProposeChangeDialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -47,6 +38,7 @@ function ColonyDetail() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { colony, permissions } = data;
+  const target = { type: "colony" as const, id: colony.id, name: colony.name };
 
   const authorize = useMutation({
     mutationFn: (authorized: boolean) => api().colonies.setAuthorization(colonyId, authorized),
@@ -109,30 +101,22 @@ function ColonyDetail() {
                 <Pencil /> Editar
               </Link>
             ) : null}
-            {permissions.canDelete ? (
-              <AlertDialog>
-                <AlertDialogTrigger
-                  render={<Button variant="ghost" className="text-negative hover:text-negative" />}
-                >
-                  <Trash2 /> Eliminar
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Eliminar «{colony.name}»?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Sus gatos seguirán en la asociación, sin colonia. Las acciones conservan su
-                      historial. No se puede deshacer.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => remove.mutate()}>Eliminar</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            ) : null}
+            <DeleteOrRequestButton
+              target={target}
+              permissions={permissions}
+              pendingDeletion={data.pendingDeletion}
+              consequences="Sus gatos seguirán en la asociación, sin colonia, y las acciones conservan su historial."
+              onDelete={() => remove.mutate()}
+            />
           </>
         }
+      />
+
+      <PendingDeletionNotice
+        target={target}
+        pending={data.pendingDeletion}
+        canResolve={permissions.canResolveDeletion}
+        onApproved={() => void router.navigate({ to: "/colonias" })}
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -204,7 +188,7 @@ function ColonyDetail() {
               <h2 className="flex items-center gap-2 font-semibold">
                 <ClipboardList className="size-4 text-brand" /> Acciones
               </h2>
-              {permissions.canAddCats ? (
+              {permissions.canAddActions ? (
                 <Link
                   to="/acciones/nueva"
                   search={{ colonyId }}
@@ -233,6 +217,14 @@ function ColonyDetail() {
             label="Ubicación de la colonia"
             picked={{ latitude: colony.latitude, longitude: colony.longitude }}
           />
+          {membership.organization.id === colony.organizationId ? (
+            <ColonyManagers
+              colonyId={colonyId}
+              managers={data.managers}
+              canManageManagers={permissions.canManageManagers}
+              loading={isFetching}
+            />
+          ) : null}
           <section>
             <h2 className="mb-3 font-semibold">Propuestas de cambio</h2>
             {proposals.isPending || proposals.isFetching ? (

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
-import { ClipboardList, Pencil, Plus, Trash2 } from "lucide-react";
+import { ClipboardList, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { catDisplayName } from "@felina/domain/felina";
@@ -11,22 +11,12 @@ import { CardsSkeleton, RowsSkeleton } from "@/components/app/skeletons";
 import { ActionRow } from "@/components/felina/ActionRow";
 import { SexLabel, SterilizedBadge } from "@/components/felina/badges";
 import { CatPhoto } from "@/components/felina/CatPhoto";
+import { DeleteOrRequestButton, PendingDeletionNotice } from "@/components/felina/Deletion";
 import { LocationMap } from "@/components/felina/LocationMap";
 import { ProposalList } from "@/components/felina/Proposals";
 import { ProposeChangeDialog } from "@/components/felina/ProposeChangeDialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { formatAge, formatDate, formatDateTime } from "@/lib/format";
@@ -49,6 +39,7 @@ function CatDetail() {
   const queryClient = useQueryClient();
   const { cat, permissions } = data;
   const name = catDisplayName(cat);
+  const target = { type: "cat" as const, id: cat.id, name };
 
   const remove = useMutation({
     mutationFn: () => api().cats.delete(catId),
@@ -77,48 +68,40 @@ function CatDetail() {
                 }}
               />
             ) : null}
+            {permissions.canAddActions ? (
+              <Link
+                to="/acciones/nueva"
+                search={{ catId, colonyId: cat.colonyId ?? undefined }}
+                className={cn(buttonVariants({ variant: "outline" }), "bg-card")}
+              >
+                <Plus /> Acción
+              </Link>
+            ) : null}
             {permissions.canEdit ? (
-              <>
-                <Link
-                  to="/acciones/nueva"
-                  search={{ catId, colonyId: cat.colonyId ?? undefined }}
-                  className={cn(buttonVariants({ variant: "outline" }), "bg-card")}
-                >
-                  <Plus /> Acción
-                </Link>
-                <Link
-                  to="/gatos/$catId/editar"
-                  params={{ catId }}
-                  className={cn(buttonVariants({ variant: "outline" }), "bg-card")}
-                >
-                  <Pencil /> Editar
-                </Link>
-              </>
+              <Link
+                to="/gatos/$catId/editar"
+                params={{ catId }}
+                className={cn(buttonVariants({ variant: "outline" }), "bg-card")}
+              >
+                <Pencil /> Editar
+              </Link>
             ) : null}
-            {permissions.canDelete ? (
-              <AlertDialog>
-                <AlertDialogTrigger
-                  render={<Button variant="ghost" className="text-negative hover:text-negative" />}
-                >
-                  <Trash2 /> Eliminar
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Eliminar a {name}?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Se borrará su ficha y su foto, y dejará de aparecer en las acciones. No se
-                      puede deshacer.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => remove.mutate()}>Eliminar</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            ) : null}
+            <DeleteOrRequestButton
+              target={target}
+              permissions={permissions}
+              pendingDeletion={data.pendingDeletion}
+              consequences="Se borrarán su ficha y su foto, y dejará de aparecer en las acciones."
+              onDelete={() => remove.mutate()}
+            />
           </>
         }
+      />
+
+      <PendingDeletionNotice
+        target={target}
+        pending={data.pendingDeletion}
+        canResolve={permissions.canResolveDeletion}
+        onApproved={() => void router.navigate({ to: "/gatos" })}
       />
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">

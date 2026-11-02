@@ -7,6 +7,8 @@ import { beforeEach, expect, it } from "vite-plus/test";
 
 import {
   actionCats,
+  colonyManagers,
+  deletionRequests,
   actions,
   cats,
   changeProposals,
@@ -118,29 +120,86 @@ describeDb("row-level security", () => {
     expect(visible.map((o) => o.id)).toEqual([pending]);
   });
 
-  it("lets only association admins create colonies; members register cats and actions", async () => {
+  it("lets admins create colonies, managers edit theirs and every member run actions", async () => {
     expect(
       await pgError(() =>
         withTenant(memberA, (tx) => tx.insert(colonies).values(colonyValues(orgA, memberA))),
       ),
     ).toMatch(/row-level security/);
     const colonyId = await colonyOfA();
+
+    // A plain member registers cats without colony and actions anywhere, but not cats in
+    // a colony they don't manage, nor edit that colony.
+    expect(
+      await pgError(() =>
+        withTenant(memberA, (tx) => tx.insert(cats).values(catValues(orgA, memberA, colonyId))),
+      ),
+    ).toMatch(/row-level security/);
+    const renamed = await withTenant(memberA, (tx) =>
+      tx.update(colonies).set({ name: "Mía" }).where(eq(colonies.id, colonyId)).returning(),
+    );
+    expect(renamed).toHaveLength(0);
+    const [looseCat] = await withTenant(memberA, (tx) =>
+      tx.insert(cats).values(catValues(orgA, memberA)).returning(),
+    );
     await withTenant(memberA, async (tx) => {
-      const [cat] = await tx
-        .insert(cats)
-        .values(catValues(orgA, memberA, colonyId))
-        .returning();
       const [action] = await tx
         .insert(actions)
         .values(actionValues(orgA, memberA, colonyId))
         .returning();
-      await tx.insert(actionCats).values({ actionId: action!.id, catId: cat!.id });
+      await tx.insert(actionCats).values({ actionId: action!.id, catId: looseCat!.id });
     });
-    // Members cannot delete colonies (no error, nothing deleted).
-    const deleted = await withTenant(memberA, (tx) =>
-      tx.delete(colonies).where(eq(colonies.id, colonyId)).returning(),
+
+    // Only admins name managers; then the manager edits the colony and adds its cats.
+    expect(
+      await pgError(() =>
+        withTenant(memberA, (tx) =>
+          tx.insert(colonyManagers).values({ colonyId, userId: memberA, addedBy: memberA }),
+        ),
+      ),
+    ).toMatch(/row-level security/);
+    await withTenant(adminA, (tx) =>
+      tx.insert(colonyManagers).values({ colonyId, userId: memberA, addedBy: adminA }),
     );
-    expect(deleted).toHaveLength(0);
+    await withTenant(memberA, async (tx) => {
+      await tx.insert(cats).values(catValues(orgA, memberA, colonyId));
+      await tx.update(colonies).set({ name: "Parque (norte)" }).where(eq(colonies.id, colonyId));
+    });
+    // Managers must be members of the colony's association.
+    expect(
+      await pgError(() =>
+        withTenant(adminA, (tx) =>
+          tx.insert(colonyManagers).values({ colonyId, userId: adminB, addedBy: adminA }),
+        ),
+      ),
+    ).toMatch(/must belong to the colony's association/);
+
+    // Only admins delete, even what the member created; others file a request.
+    const deleted = await withTenant(memberA, async (tx) => ({
+      colonies: await tx.delete(colonies).where(eq(colonies.id, colonyId)).returning(),
+      cats: await tx.delete(cats).where(eq(cats.id, looseCat!.id)).returning(),
+    }));
+    expect(deleted).toEqual({ colonies: [], cats: [] });
+    const request = {
+      organizationId: orgA,
+      targetType: "cat" as const,
+      catId: looseCat!.id,
+      targetLabel: "Michi",
+    };
+    expect(
+      await pgError(() =>
+        withTenant(adminA, (tx) =>
+          tx.insert(deletionRequests).values({ ...request, requestedBy: adminA }),
+        ),
+      ),
+    ).toMatch(/row-level security/);
+    await withTenant(memberA, (tx) =>
+      tx.insert(deletionRequests).values({ ...request, requestedBy: memberA }),
+    );
+    // Deleting the cat (an admin) approves the pending request.
+    await withTenant(adminA, (tx) => tx.delete(cats).where(eq(cats.id, looseCat!.id)));
+    const [approved] = await withTenant(memberA, (tx) => tx.select().from(deletionRequests));
+    expect(approved).toMatchObject({ status: "approved", resolvedBy: adminA, catId: null });
   });
 
   it("isolates associations from each other", async () => {

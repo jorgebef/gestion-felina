@@ -73,6 +73,24 @@ export const PROPOSAL_STATUS_LABELS: Record<ProposalStatus, string> = {
   withdrawn: "Retirada",
 };
 
+/** Things whose deletion an association admin must approve when someone else asks. */
+export const DELETION_TARGETS = ["colony", "cat", "action"] as const;
+export type DeletionTarget = (typeof DELETION_TARGETS)[number];
+export const DELETION_TARGET_LABELS: Record<DeletionTarget, string> = {
+  colony: "Colonia",
+  cat: "Gato",
+  action: "Acción",
+};
+
+export const DELETION_STATUSES = ["pending", "approved", "rejected", "withdrawn"] as const;
+export type DeletionStatus = (typeof DELETION_STATUSES)[number];
+export const DELETION_STATUS_LABELS: Record<DeletionStatus, string> = {
+  pending: "Pendiente",
+  approved: "Aprobada",
+  rejected: "Rechazada",
+  withdrawn: "Retirada",
+};
+
 /** Fields a town hall may propose to change, with their labels. */
 export const COLONY_PROPOSABLE_FIELDS = {
   name: "Nombre",

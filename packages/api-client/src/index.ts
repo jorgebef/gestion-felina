@@ -9,7 +9,7 @@
 import { hc, type ClientResponse, type InferRequestType } from "hono/client";
 
 import type { ApiRoutes } from "@felina/api";
-import type { ActionStatus, ProposalStatus } from "@felina/domain/felina";
+import type { ActionStatus, DeletionStatus, ProposalStatus } from "@felina/domain/felina";
 import type { ActionListQuery } from "@felina/schemas/action";
 import type { CatListQuery } from "@felina/schemas/cat";
 import type { ColonyListQuery } from "@felina/schemas/colony";
@@ -150,6 +150,10 @@ export function createApi(options: ApiOptions) {
         unwrap(c.colonies[":id"].authorization.$put({ param: { id }, json: { authorized } })),
       propose: (id: string, json: Body<RawClient["colonies"][":id"]["proposals"]["$post"]>) =>
         unwrap(c.colonies[":id"].proposals.$post({ param: { id }, json })),
+      addManager: (id: string, userId: string) =>
+        unwrap(c.colonies[":id"].managers.$post({ param: { id }, json: { userId } })),
+      removeManager: (id: string, userId: string) =>
+        unwrap(c.colonies[":id"].managers[":userId"].$delete({ param: { id, userId } })),
     },
     cats: {
       list: (query: CatListQuery = {}) => unwrap(c.cats.$get({ query: toQuery(query) })),
@@ -201,6 +205,18 @@ export function createApi(options: ApiOptions) {
       resolve: (id: string, json: Body<RawClient["proposals"][":id"]["resolve"]["$post"]>) =>
         unwrap(c.proposals[":id"].resolve.$post({ param: { id }, json })),
       withdraw: (id: string) => unwrap(c.proposals[":id"].withdraw.$post({ param: { id } })),
+    },
+    deletions: {
+      list: (query: { status?: DeletionStatus } = {}) =>
+        unwrap(c["deletion-requests"].$get({ query: toQuery(query) })),
+      request: (json: Body<RawClient["deletion-requests"]["$post"]>) =>
+        unwrap(c["deletion-requests"].$post({ json })),
+      resolve: (
+        id: string,
+        json: Body<RawClient["deletion-requests"][":id"]["resolve"]["$post"]>,
+      ) => unwrap(c["deletion-requests"][":id"].resolve.$post({ param: { id }, json })),
+      withdraw: (id: string) =>
+        unwrap(c["deletion-requests"][":id"].withdraw.$post({ param: { id } })),
     },
     dashboard: {
       get: () => unwrap(c.dashboard.$get()),

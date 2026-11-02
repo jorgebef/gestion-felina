@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
-import { BadgeCheck, Cat, Loader2, Pencil, Trash2, Undo2, Users } from "lucide-react";
+import { BadgeCheck, Cat, Loader2, Pencil, Undo2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -21,17 +21,7 @@ import {
   ValidationBadge,
 } from "@/components/felina/badges";
 import { CatPhoto } from "@/components/felina/CatPhoto";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { DeleteOrRequestButton, PendingDeletionNotice } from "@/components/felina/Deletion";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -61,6 +51,7 @@ function ActionDetail() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { action, permissions } = data;
+  const target = { type: "action" as const, id: action.id, name: action.name };
   const refresh = () => queryClient.invalidateQueries();
 
   const setStatus = useMutation({
@@ -153,30 +144,22 @@ function ActionDetail() {
                 </Link>
               </>
             ) : null}
-            {permissions.canDelete ? (
-              <AlertDialog>
-                <AlertDialogTrigger
-                  render={<Button variant="ghost" className="text-negative hover:text-negative" />}
-                >
-                  <Trash2 /> Eliminar
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Eliminar esta acción?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Desaparecerá del historial de los gatos y del feed del ayuntamiento. Si ya se
-                      realizó, es mejor marcarla como cancelada o realizada.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => remove.mutate()}>Eliminar</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            ) : null}
+            <DeleteOrRequestButton
+              target={target}
+              permissions={permissions}
+              pendingDeletion={data.pendingDeletion}
+              consequences="Desaparecerá del historial de los gatos y del feed del ayuntamiento. Si ya se realizó, es mejor marcarla como cancelada o realizada."
+              onDelete={() => remove.mutate()}
+            />
           </>
         }
+      />
+
+      <PendingDeletionNotice
+        target={target}
+        pending={data.pendingDeletion}
+        canResolve={permissions.canResolveDeletion}
+        onApproved={() => void router.navigate({ to: "/acciones" })}
       />
 
       <div className="mb-6 flex flex-wrap gap-1.5">

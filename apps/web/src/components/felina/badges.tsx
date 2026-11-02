@@ -4,17 +4,20 @@ import {
   ACTION_STATUS_LABELS,
   ACTION_TYPE_LABELS,
   CAT_SEX_LABELS,
+  DELETION_STATUS_LABELS,
   ORGANIZATION_STATUS_LABELS,
   PROPOSAL_STATUS_LABELS,
   type ActionStatus,
   type ActionType,
   type CatSex,
+  type DeletionStatus,
   type OrganizationStatus,
   type ProposalStatus,
 } from "@felina/domain/felina";
 
 import {
   ACTION_STATUS_TONE,
+  DELETION_STATUS_TONE,
   ORGANIZATION_STATUS_TONE,
   PROPOSAL_STATUS_TONE,
   TONE_STYLES,
@@ -114,6 +117,10 @@ export function OrganizationStatusBadge({ status }: { status: OrganizationStatus
 
 export function ProposalStatusBadge({ status }: { status: ProposalStatus }) {
   return <Pill tone={PROPOSAL_STATUS_TONE[status]}>{PROPOSAL_STATUS_LABELS[status]}</Pill>;
+}
+
+export function DeletionStatusBadge({ status }: { status: DeletionStatus }) {
+  return <Pill tone={DELETION_STATUS_TONE[status]}>{DELETION_STATUS_LABELS[status]}</Pill>;
 }
 
 export function SexLabel({ sex }: { sex: CatSex }) {

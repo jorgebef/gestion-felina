@@ -13,12 +13,14 @@ import { runActionReminders } from "@felina/notifications/reminders";
 import { createLocalStorage, setStorage } from "@felina/storage";
 
 import {
+  addMember,
   describeDb,
   GETAFE,
   MADRID,
   MADRID_POINT,
   PNG,
   recordingMailer,
+  registerAssociationFor,
   resetData,
 } from "./helpers.ts";
 
@@ -125,6 +127,179 @@ describeDb("API", () => {
     expect((await accept({ origin: ORIGIN })).status).toBe(401);
     expect((await accept({ "sec-fetch-site": "same-origin" })).status).toBe(401);
     expect((await accept({})).status).toBe(401);
+  });
+
+  it("lets colony managers edit their colonies and admins approve every deletion", async () => {
+    // An approved association: Ana (admin), Gema (will manage one colony), Vito (member).
+    const ana = clientFor(await signUp("ana@example.test"));
+    const gema = clientFor(await signUp("gema@example.test"));
+    const vito = clientFor(await signUp("vito@example.test"));
+    const [anaId, gemaId, vitoId] = await Promise.all(
+      [ana, gema, vito].map(async (c) => (await c.me.get())!.user.id),
+    );
+    const orgId = await registerAssociationFor(anaId!, "Gatos del Sur");
+    await addMember(gemaId!, orgId);
+    await addMember(vitoId!, orgId);
+
+    const place = { ...MADRID_POINT, municipalityCode: MADRID };
+    const { id: northId } = await ana.colonies.create({ name: "Norte", ...place });
+    const { id: southId } = await ana.colonies.create({ name: "Sur", ...place });
+    const newCat = async (client: typeof ana, name: string, colonyId: string | null) => {
+      const { photoKey } = await client.cats.uploadPhoto(new Blob([PNG], { type: "image/png" }));
+      return client.cats.create({
+        name,
+        sex: "female",
+        birthDate: null,
+        photoKey,
+        colonyId,
+        ...place,
+      });
+    };
+
+    // Only admins create colonies and name managers.
+    await expectApiError(vito.colonies.create({ name: "Otra", ...place }), "FORBIDDEN");
+    await expectApiError(vito.colonies.addManager(northId, vitoId!), "FORBIDDEN");
+    await ana.colonies.addManager(northId, gemaId!);
+    await ana.colonies.addManager(northId, gemaId!); // twice is fine
+    expect((await vito.colonies.get(northId)).managers.map((m) => m.email)).toEqual([
+      "gema@example.test",
+    ]);
+
+    // Members see colonies but don't change them or their cats.
+    const asVito = await vito.colonies.get(northId);
+    expect(asVito.permissions).toMatchObject({
+      canEdit: false,
+      canAddCats: false,
+      canDelete: false,
+      canRequestDeletion: false,
+    });
+    await expectApiError(vito.colonies.update(northId, { name: "Mío", ...place }), "FORBIDDEN");
+    await expectApiError(newCat(vito, "Intrusa", northId), "FORBIDDEN");
+    // Cats without a colony are anyone's, but can't be moved into a colony they don't manage.
+    const { id: looseId } = await newCat(vito, "Suelta", null);
+    expect((await vito.cats.get(looseId)).permissions.canEdit).toBe(true);
+    const loose = await vito.cats.get(looseId);
+    const looseInput = {
+      name: "Suelta",
+      sex: loose.cat.sex,
+      birthDate: null,
+      photoKey: loose.photoKey!,
+      ...place,
+    };
+    await vito.cats.update(looseId, { ...looseInput, colonyId: null, name: "Suelta 2" });
+    await expectApiError(
+      vito.cats.update(looseId, { ...looseInput, colonyId: northId }),
+      "FORBIDDEN",
+    );
+
+    // Managers change their colony and its cats, not other colonies.
+    expect((await gema.colonies.get(northId)).permissions).toMatchObject({
+      canEdit: true,
+      canAddCats: true,
+      canDelete: false,
+      canRequestDeletion: true,
+    });
+    expect((await gema.colonies.get(southId)).permissions.canEdit).toBe(false);
+    await gema.colonies.update(northId, { name: "Norte (río)", ...place });
+    await expectApiError(gema.colonies.update(southId, { name: "Sur", ...place }), "FORBIDDEN");
+    const { id: catId } = await newCat(gema, "Luna", northId);
+    const { id: otherCatId } = await newCat(gema, "Sol", northId);
+    expect((await vito.cats.get(catId)).permissions.canEdit).toBe(false);
+    expect((await gema.colonies.options()).map((o) => [o.name, o.canManage])).toEqual([
+      ["Norte (río)", true],
+      ["Sur", false],
+    ]);
+
+    // Any member still runs actions: a sterilization Vito completes marks the cat.
+    const { id: actionId } = await vito.actions.create({
+      actionType: "sterilization",
+      name: "Castración de Sol",
+      scheduledAt: new Date().toISOString(),
+      colonyId: northId,
+      catIds: [otherCatId],
+    });
+    expect((await vito.actions.setStatus(actionId, "done")).sterilizedCats).toBe(1);
+    expect((await ana.cats.get(otherCatId)).cat.sterilized).toBe(true);
+
+    // Only admins delete; the rest ask.
+    await expectApiError(gema.cats.delete(catId), "FORBIDDEN");
+    await expectApiError(gema.colonies.delete(northId), "FORBIDDEN");
+    await expectApiError(vito.actions.delete(actionId), "FORBIDDEN");
+    await expectApiError(
+      vito.deletions.request({ targetType: "cat", targetId: catId }),
+      "FORBIDDEN",
+    );
+    await expectApiError(ana.deletions.request({ targetType: "cat", targetId: catId }), "CONFLICT");
+    mail.sent.length = 0;
+    const { id: firstRequest } = await gema.deletions.request({
+      targetType: "cat",
+      targetId: catId,
+      reason: "Está duplicada",
+    });
+    expect(mail.sent.map((m) => m.to)).toEqual(["ana@example.test"]);
+    expect(mail.sent[0]!.text).toContain("Está duplicada");
+    await expectApiError(
+      gema.deletions.request({ targetType: "cat", targetId: catId }),
+      "CONFLICT",
+    );
+    expect((await gema.cats.get(catId)).pendingDeletion).toMatchObject({
+      reason: "Está duplicada",
+      requestedByMe: true,
+    });
+    expect((await ana.cats.get(catId)).permissions).toMatchObject({
+      canDelete: true,
+      canResolveDeletion: true,
+    });
+
+    // Members can't resolve; a rejected request leaves the cat alone.
+    await expectApiError(
+      gema.deletions.resolve(firstRequest, { decision: "approve" }),
+      "FORBIDDEN",
+    );
+    await ana.deletions.resolve(firstRequest, { decision: "reject", note: "Es otra gata" });
+    expect(mail.sent.at(-1)).toMatchObject({ to: "gema@example.test" });
+    expect((await gema.cats.get(catId)).pendingDeletion).toBeNull();
+
+    // Approving deletes it.
+    const { id: secondRequest } = await gema.deletions.request({
+      targetType: "cat",
+      targetId: catId,
+    });
+    await ana.deletions.resolve(secondRequest, { decision: "approve" });
+    await expectApiError(ana.cats.get(catId), "NOT_FOUND");
+    const history = await vito.deletions.list();
+    expect(history.map((r) => [r.targetLabel, r.status, r.resolvedByName])).toEqual([
+      ["Luna", "approved", "ana"],
+      ["Luna", "rejected", "ana"],
+    ]);
+
+    // Requesters can withdraw; admins can also delete directly, closing pending requests.
+    const { id: actionRequest } = await vito.deletions.request({
+      targetType: "action",
+      targetId: actionId,
+    });
+    await expectApiError(gema.deletions.withdraw(actionRequest), "NOT_FOUND");
+    await vito.deletions.withdraw(actionRequest);
+    await vito.deletions.request({ targetType: "action", targetId: actionId });
+    await ana.actions.delete(actionId);
+    expect((await ana.deletions.list({ status: "approved" })).map((r) => r.targetType)).toEqual([
+      "action",
+      "cat",
+    ]);
+
+    // A deleted colony keeps its cats (without colony).
+    const { id: colonyRequest } = await gema.deletions.request({
+      targetType: "colony",
+      targetId: northId,
+    });
+    await ana.deletions.resolve(colonyRequest, { decision: "approve", note: "De acuerdo" });
+    await expectApiError(ana.colonies.get(northId), "NOT_FOUND");
+    expect((await ana.cats.get(otherCatId)).cat.colonyId).toBeNull();
+
+    // Leaving the association ends the person's colony management.
+    await ana.colonies.addManager(southId, gemaId!);
+    await ana.organizations.removeMember(gemaId!);
+    expect((await ana.colonies.get(southId)).managers).toEqual([]);
   });
 
   it("lets every signed-in user read and edit their own profile", async () => {

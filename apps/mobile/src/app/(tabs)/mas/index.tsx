@@ -3,6 +3,7 @@ import {
   LogOut,
   Settings,
   ShieldCheck,
+  Trash2,
   UserRound,
   Users,
 } from "lucide-react-native";
@@ -42,6 +43,9 @@ export default function More() {
         title="Organización"
         items={[
           { label: "Propuestas", icon: GitPullRequestArrow, href: "/propuestas" },
+          ...(organization.kind === "association"
+            ? [{ label: "Eliminaciones", icon: Trash2, href: "/eliminaciones" as const }]
+            : []),
           { label: "Equipo", icon: Users, href: "/equipo" },
           { label: "Ajustes de la organización", icon: Settings, href: "/ajustes" },
         ]}

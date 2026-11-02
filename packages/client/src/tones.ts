@@ -2,7 +2,12 @@
  * Status → colour tone, and the Tailwind classes of each tone. The same class names work
  * on the web (Tailwind) and on mobile (Uniwind), so both apps' badges read the same.
  */
-import type { ActionStatus, OrganizationStatus, ProposalStatus } from "@felina/domain/felina";
+import type {
+  ActionStatus,
+  DeletionStatus,
+  OrganizationStatus,
+  ProposalStatus,
+} from "@felina/domain/felina";
 
 export type Tone = "neutral" | "brand" | "positive" | "warning" | "negative" | "muted";
 
@@ -37,6 +42,13 @@ export const PROPOSAL_STATUS_TONE: Record<ProposalStatus, Tone> = {
   pending: "warning",
   accepted: "positive",
   rejected: "negative",
+  withdrawn: "muted",
+};
+
+export const DELETION_STATUS_TONE: Record<DeletionStatus, Tone> = {
+  pending: "warning",
+  approved: "negative",
+  rejected: "muted",
   withdrawn: "muted",
 };
 

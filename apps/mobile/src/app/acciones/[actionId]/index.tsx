@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, router, Stack, useLocalSearchParams } from "expo-router";
-import { BadgeCheck, Cat, Pencil, Trash2, Undo2, Users } from "lucide-react-native";
+import { BadgeCheck, Cat, Pencil, Undo2, Users } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 import { toast } from "sonner-native";
 
@@ -22,13 +22,13 @@ import {
   UrgentBadge,
   ValidationBadge,
 } from "@/components/felina/badges";
+import { DeleteOrRequestButton, PendingDeletionNotice } from "@/components/felina/deletion";
 import { CatPhoto } from "@/components/felina/cat-photo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/controls";
 import { Field } from "@/components/ui/field";
 import { api } from "@/lib/api";
-import { confirm } from "@/lib/confirm";
 import { actionQuery } from "@/lib/queries";
 
 export default function ActionDetail() {
@@ -78,6 +78,7 @@ export default function ActionDetail() {
     );
   }
   const { action, permissions } = query.data;
+  const target = { type: "action" as const, id: action.id, name: action.name };
   const isFetching = query.isFetching;
 
   return (
@@ -116,27 +117,23 @@ export default function ActionDetail() {
                 </Button>
               </Link>
             ) : null}
-            {permissions.canDelete ? (
-              <Button
-                variant="ghost"
-                tone="negative"
-                icon={Trash2}
-                loading={remove.isPending}
-                onPress={async () => {
-                  const ok = await confirm({
-                    title: "¿Eliminar esta acción?",
-                    message:
-                      "Desaparecerá del historial de los gatos y del feed del ayuntamiento. Si ya se realizó, es mejor marcarla como cancelada o realizada.",
-                    confirmLabel: "Eliminar",
-                  });
-                  if (ok) remove.mutate();
-                }}
-              >
-                Eliminar
-              </Button>
-            ) : null}
+            <DeleteOrRequestButton
+              target={target}
+              permissions={permissions}
+              pendingDeletion={query.data.pendingDeletion}
+              consequences="Desaparecerá del historial de los gatos y del feed del ayuntamiento. Si ya se realizó, es mejor marcarla como cancelada o realizada."
+              onDelete={() => remove.mutate()}
+              deleting={remove.isPending}
+            />
           </>
         }
+      />
+
+      <PendingDeletionNotice
+        target={target}
+        pending={query.data.pendingDeletion}
+        canResolve={permissions.canResolveDeletion}
+        onApproved={() => router.back()}
       />
 
       <View className="flex-row flex-wrap gap-1.5">

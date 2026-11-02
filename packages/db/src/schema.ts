@@ -22,6 +22,8 @@ import type {
   ActionStatus,
   ActionType,
   CatSex,
+  DeletionStatus,
+  DeletionTarget,
   MemberRole,
   OrganizationKind,
   OrganizationStatus,
@@ -250,6 +252,43 @@ export const actionParticipants = pgTable(
 );
 
 /* ----------------------------- Change proposals --------------------------- */
+
+/** Members who manage a colony (edit it and its cats). Admins manage every colony. */
+export const colonyManagers = pgTable(
+  "colony_managers",
+  {
+    colonyId: uuid("colony_id")
+      .notNull()
+      .references(() => colonies.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    addedBy: uuid("added_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.colonyId, t.userId] })],
+);
+
+/** A deletion someone asked for, pending until an admin of the association approves it. */
+export const deletionRequests = pgTable("deletion_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  targetType: text("target_type").$type<DeletionTarget>().notNull(),
+  // Emptied when the target is deleted; `targetLabel` keeps its name for the history.
+  colonyId: uuid("colony_id").references(() => colonies.id, { onDelete: "set null" }),
+  catId: uuid("cat_id").references(() => cats.id, { onDelete: "set null" }),
+  actionId: uuid("action_id").references(() => actions.id, { onDelete: "set null" }),
+  targetLabel: text("target_label").notNull(),
+  reason: text("reason"),
+  requestedBy: uuid("requested_by").references(() => users.id, { onDelete: "set null" }),
+  status: text("status").$type<DeletionStatus>().notNull().default("pending"),
+  resolutionNote: text("resolution_note"),
+  resolvedAt: ts("resolved_at"),
+  resolvedBy: uuid("resolved_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
 
 export const changeProposals = pgTable("change_proposals", {
   id: uuid("id").primaryKey().defaultRandom(),

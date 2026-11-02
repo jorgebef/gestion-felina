@@ -117,6 +117,7 @@ function Navigator() {
           options={{ title: "Editar acción", presentation: "modal" }}
         />
         <Stack.Screen name="propuestas" options={{ title: "Propuestas" }} />
+        <Stack.Screen name="eliminaciones" options={{ title: "Eliminaciones" }} />
         <Stack.Screen name="equipo" options={{ title: "Equipo" }} />
         <Stack.Screen name="ajustes" options={{ title: "Ajustes" }} />
       </Stack.Protected>

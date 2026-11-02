@@ -70,6 +70,8 @@ export function CatForm({
   const set = <K extends keyof CatFormValues>(key: K, value: CatFormValues[K]) =>
     setValues((v) => ({ ...v, [key]: value }));
   const colony = colonies.data?.find((c) => c.id === values.colonyId);
+  // Cats of a colony are its managers' (and admins'): offer only those colonies.
+  const placeable = colonies.data?.filter((c) => c.canManage || c.id === initial.colonyId);
 
   const applyColonyLocation = (target = colony) => {
     if (!target) return;
@@ -134,10 +136,10 @@ export function CatForm({
         />
       </Field>
 
-      <Field label="Colonia" error={errors.colonyId}>
+      <Field label="Colonia" hint="Solo las colonias que gestionas." error={errors.colonyId}>
         <Select
           value={values.colonyId ?? NO_COLONY}
-          items={{ [NO_COLONY]: "Sin colonia", ...colonyLabels(colonies.data) }}
+          items={{ [NO_COLONY]: "Sin colonia", ...colonyLabels(placeable) }}
           disabled={submitting}
           onValueChange={(v) => {
             const colonyId = v === NO_COLONY ? null : v;

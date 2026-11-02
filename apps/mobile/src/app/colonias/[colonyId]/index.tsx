@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, router, Stack, useLocalSearchParams } from "expo-router";
-import { BadgeCheck, Cat, ClipboardList, Pencil, Plus, Trash2, Undo2 } from "lucide-react-native";
+import { BadgeCheck, Cat, ClipboardList, Pencil, Plus, Undo2 } from "lucide-react-native";
 import { Text, View } from "react-native";
 import { toast } from "sonner-native";
 
@@ -20,19 +20,20 @@ import {
 import { ActionRow } from "@/components/felina/action-row";
 import { AuthorizationBadge } from "@/components/felina/badges";
 import { CatGrid } from "@/components/felina/cat-card";
+import { ColonyManagers } from "@/components/felina/colony-managers";
+import { DeleteOrRequestButton, PendingDeletionNotice } from "@/components/felina/deletion";
 import { LocationMap } from "@/components/felina/location-map";
 import { ProposalList } from "@/components/felina/proposals";
 import { ProposeChangeSheet } from "@/components/felina/propose-change-sheet";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { confirm } from "@/lib/confirm";
 import { colonyQuery, proposalsQuery } from "@/lib/queries";
 import { useMembership } from "@/lib/session";
 
 export default function ColonyDetail() {
   const { colonyId } = useLocalSearchParams<{ colonyId: string }>();
-  const { isAdmin, isAssociation } = useMembership();
+  const { isAdmin, isAssociation, organization } = useMembership();
   const query = useQuery(colonyQuery(colonyId));
   const proposals = useQuery(proposalsQuery({ colonyId }));
   const queryClient = useQueryClient();
@@ -66,6 +67,7 @@ export default function ColonyDetail() {
   }
   const { colony, permissions } = query.data;
   const isFetching = query.isFetching;
+  const target = { type: "colony" as const, id: colony.id, name: colony.name };
 
   return (
     <Screen onRefresh={() => Promise.all([query.refetch(), proposals.refetch()])}>
@@ -106,27 +108,23 @@ export default function ColonyDetail() {
                 </Button>
               </Link>
             ) : null}
-            {permissions.canDelete ? (
-              <Button
-                variant="ghost"
-                tone="negative"
-                icon={Trash2}
-                loading={remove.isPending}
-                onPress={async () => {
-                  const ok = await confirm({
-                    title: `¿Eliminar «${colony.name}»?`,
-                    message:
-                      "Sus gatos seguirán en la asociación, sin colonia. Las acciones conservan su historial. No se puede deshacer.",
-                    confirmLabel: "Eliminar",
-                  });
-                  if (ok) remove.mutate();
-                }}
-              >
-                Eliminar
-              </Button>
-            ) : null}
+            <DeleteOrRequestButton
+              target={target}
+              permissions={permissions}
+              pendingDeletion={query.data.pendingDeletion}
+              consequences="Sus gatos seguirán en la asociación, sin colonia, y las acciones conservan su historial."
+              onDelete={() => remove.mutate()}
+              deleting={remove.isPending}
+            />
           </>
         }
+      />
+
+      <PendingDeletionNotice
+        target={target}
+        pending={query.data.pendingDeletion}
+        canResolve={permissions.canResolveDeletion}
+        onApproved={() => router.back()}
       />
 
       <LocationMap
@@ -184,7 +182,7 @@ export default function ColonyDetail() {
       <View className="gap-3">
         <View className="flex-row items-center justify-between gap-2">
           <SectionTitle icon={ClipboardList}>Acciones</SectionTitle>
-          {permissions.canAddCats ? (
+          {permissions.canAddActions ? (
             <Link href={{ pathname: "/acciones/nueva", params: { colonyId } }} asChild>
               <Button size="sm" variant="outline" icon={Plus}>
                 Nueva acción
@@ -204,6 +202,15 @@ export default function ColonyDetail() {
           <Text className="text-sm text-muted-foreground">Sin acciones todavía.</Text>
         )}
       </View>
+
+      {organization.id === colony.organizationId ? (
+        <ColonyManagers
+          colonyId={colonyId}
+          managers={query.data.managers}
+          canManageManagers={permissions.canManageManagers}
+          loading={isFetching}
+        />
+      ) : null}
 
       <View className="gap-3">
         <SectionTitle>Propuestas de cambio</SectionTitle>

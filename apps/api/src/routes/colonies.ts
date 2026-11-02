@@ -13,13 +13,21 @@ import {
   uploadCatPhoto,
 } from "@felina/core/cats";
 import {
+  addColonyManager,
   createColony,
   deleteColony,
   getColony,
   listColonies,
+  removeColonyManager,
   setColonyAuthorization,
   updateColony,
 } from "@felina/core/colonies";
+import {
+  listDeletionRequests,
+  requestDeletion,
+  resolveDeletion,
+  withdrawDeletion,
+} from "@felina/core/deletions";
 import { DomainError } from "@felina/core/context";
 import {
   listProposals,
@@ -31,6 +39,12 @@ import {
 import { catInputSchema, catListSchema, MAX_PHOTO_BYTES } from "@felina/schemas/cat";
 import { authorizationSchema, colonyInputSchema, colonyListSchema } from "@felina/schemas/colony";
 import { idParamSchema } from "@felina/schemas/common";
+import {
+  colonyManagerInputSchema,
+  deletionListSchema,
+  deletionRequestInputSchema,
+  deletionResolutionSchema,
+} from "@felina/schemas/deletion";
 import {
   catProposalSchema,
   colonyProposalSchema,
@@ -70,6 +84,21 @@ export const colonyRoutes = new Hono()
   )
   .post("/:id/proposals", id, zValidator("json", colonyProposalSchema, onInvalid), async (c) =>
     c.json(await proposeColonyChange(c.var.ctx, c.req.valid("param").id, c.req.valid("json")), 201),
+  )
+  /** Association admins name and remove the colony's managers. */
+  .post("/:id/managers", id, zValidator("json", colonyManagerInputSchema, onInvalid), async (c) =>
+    c.json(
+      await addColonyManager(c.var.ctx, c.req.valid("param").id, c.req.valid("json").userId),
+      201,
+    ),
+  )
+  .delete(
+    "/:id/managers/:userId",
+    zValidator("param", z.object({ id: z.uuid(), userId: z.uuid() }), onInvalid),
+    async (c) => {
+      const { id: colonyId, userId } = c.req.valid("param");
+      return c.json(await removeColonyManager(c.var.ctx, colonyId, userId));
+    },
   );
 
 export const catRoutes = new Hono()
@@ -131,4 +160,20 @@ export const proposalRoutes = new Hono()
   )
   .post("/:id/withdraw", id, async (c) =>
     c.json(await withdrawProposal(c.var.ctx, c.req.valid("param").id)),
+  );
+
+/** Deletions of colonies, cats and actions asked for by non-admins. */
+export const deletionRoutes = new Hono()
+  .use(requireOrg)
+  .get("/", zValidator("query", deletionListSchema, onInvalid), async (c) =>
+    c.json(await listDeletionRequests(c.var.ctx, c.req.valid("query"))),
+  )
+  .post("/", zValidator("json", deletionRequestInputSchema, onInvalid), async (c) =>
+    c.json(await requestDeletion(c.var.ctx, c.req.valid("json")), 201),
+  )
+  .post("/:id/resolve", id, zValidator("json", deletionResolutionSchema, onInvalid), async (c) =>
+    c.json(await resolveDeletion(c.var.ctx, c.req.valid("param").id, c.req.valid("json"))),
+  )
+  .post("/:id/withdraw", id, async (c) =>
+    c.json(await withdrawDeletion(c.var.ctx, c.req.valid("param").id)),
   );

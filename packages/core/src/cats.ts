@@ -1,7 +1,7 @@
 /** Cats: registered by association members; visible to the town hall of their municipality. */
 import { randomUUID } from "node:crypto";
 
-import { and, asc, desc, eq, ilike, isNull, or, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNull, or, sql, type SQL } from "drizzle-orm";
 
 import {
   actionCats,
@@ -11,6 +11,7 @@ import {
   municipalities,
   organizations,
   withTenant,
+  type TenantTx,
 } from "@felina/db";
 import { getStorage } from "@felina/storage";
 import {
@@ -24,11 +25,18 @@ import {
 import {
   assertAssociation,
   DomainError,
-  isAdmin,
+  isAssociation,
   isTownHall,
   mapDbError,
   type OrgContext,
 } from "./context.ts";
+import {
+  assertCanDelete,
+  canManageColony,
+  canManageColonySql,
+  deletionPermissions,
+  pendingDeletionFor,
+} from "./permissions.ts";
 
 export function listCats(ctx: OrgContext, query: CatListQuery) {
   return withTenant(ctx.user.id, (tx) => {
@@ -119,15 +127,23 @@ export function getCat(ctx: OrgContext, id: string) {
 
     const mine = cat.organizationId === ctx.membership.organization.id;
     const town = ctx.membership.organization.municipalityCode;
-    const { createdBy, photoKey, ...rest } = cat;
+    // Cats without a colony are any member's; the rest belong to their colony's managers.
+    const canEdit =
+      mine &&
+      isAssociation(ctx) &&
+      (cat.colonyId === null || (await canManageColony(tx, cat.colonyId)));
+    const { createdBy: _createdBy, photoKey, ...rest } = cat;
     return {
       cat: rest,
       /** Only for the managing association (needed to keep the photo when editing). */
       photoKey: mine ? photoKey : null,
       actions: history,
+      pendingDeletion: mine ? await pendingDeletionFor(tx, ctx, "cat", id) : null,
       permissions: {
-        canEdit: mine,
-        canDelete: mine && (isAdmin(ctx) || createdBy === ctx.user.id),
+        canEdit,
+        /** Actions are any member's, whoever manages the cat. */
+        canAddActions: mine && isAssociation(ctx),
+        ...deletionPermissions(ctx, mine, canEdit),
         canPropose: isTownHall(ctx) && town !== null,
       },
     };
@@ -157,12 +173,29 @@ function values(data: CatInput) {
   };
 }
 
-const writeErrors = { VALIDATION: "La colonia elegida no es de tu asociación" };
+const writeErrors = {
+  VALIDATION: "La colonia elegida no es de tu asociación",
+  FORBIDDEN:
+    "Solo los gestores de la colonia y los administradores pueden añadir o editar sus gatos",
+};
+
+/** Cats of a colony are its managers' (and admins'); cats without colony, anyone's. */
+async function assertCanPlaceIn(tx: TenantTx, colonyId: string | null) {
+  if (colonyId !== null && !(await canManageColony(tx, colonyId))) {
+    throw new DomainError("FORBIDDEN", writeErrors.FORBIDDEN);
+  }
+}
+
+async function canEditCat(tx: TenantTx, id: string): Promise<boolean> {
+  const result = await tx.execute<{ ok: boolean }>(sql`select app_can_edit_cat(${id}) as ok`);
+  return result.rows[0]?.ok === true;
+}
 
 export async function createCat(ctx: OrgContext, data: CatInput) {
   assertAssociation(ctx);
   assertOwnPhoto(ctx, data.photoKey);
   return withTenant(ctx.user.id, async (tx) => {
+    await assertCanPlaceIn(tx, data.colonyId);
     const [row] = await tx
       .insert(cats)
       .values({
@@ -184,6 +217,9 @@ export async function updateCat(ctx: OrgContext, id: string, data: CatInput) {
       .from(cats)
       .where(and(eq(cats.id, id), eq(cats.organizationId, ctx.membership.organization.id)));
     if (!current) throw new DomainError("NOT_FOUND", "El gato no existe");
+    // RLS would silently skip the update: say why instead.
+    if (!(await canEditCat(tx, id))) throw new DomainError("FORBIDDEN", writeErrors.FORBIDDEN);
+    await assertCanPlaceIn(tx, data.colonyId);
     await tx.update(cats).set(values(data)).where(eq(cats.id, id));
     return current.photoKey;
   }).catch((error) => mapDbError(error, writeErrors));
@@ -191,23 +227,23 @@ export async function updateCat(ctx: OrgContext, id: string, data: CatInput) {
   return { ok: true as const };
 }
 
+/** Admins only; the rest ask for it (deletions.ts). */
 export async function deleteCat(ctx: OrgContext, id: string) {
   assertAssociation(ctx);
-  const photoKey = await withTenant(ctx.user.id, async (tx) => {
-    const deleted = await tx
-      .delete(cats)
-      .where(and(eq(cats.id, id), eq(cats.organizationId, ctx.membership.organization.id)))
-      .returning({ photoKey: cats.photoKey });
-    if (!deleted.length) {
-      throw new DomainError(
-        "FORBIDDEN",
-        "Solo los administradores o quien registró el gato pueden eliminarlo",
-      );
-    }
-    return deleted[0]!.photoKey;
-  });
+  assertCanDelete(ctx);
+  const photoKey = await withTenant(ctx.user.id, (tx) => deleteCatIn(tx, ctx, id));
   await deletePhotoQuietly(photoKey);
   return { ok: true as const };
+}
+
+/** Returns the photo to delete from storage once the transaction commits. */
+export async function deleteCatIn(tx: TenantTx, ctx: OrgContext, id: string): Promise<string> {
+  const deleted = await tx
+    .delete(cats)
+    .where(and(eq(cats.id, id), eq(cats.organizationId, ctx.membership.organization.id)))
+    .returning({ photoKey: cats.photoKey });
+  if (!deleted.length) throw new DomainError("NOT_FOUND", "El gato no existe");
+  return deleted[0]!.photoKey;
 }
 
 /** Colonies of the caller's association, for the cat and action forms. */
@@ -222,6 +258,8 @@ export function listColonyOptions(ctx: OrgContext) {
         municipalityCode: colonies.municipalityCode,
         municipalityName: municipalities.name,
         address: colonies.address,
+        /** Its cats can only be registered by its managers (and admins). */
+        canManage: canManageColonySql(colonies.id),
       })
       .from(colonies)
       .innerJoin(municipalities, eq(municipalities.code, colonies.municipalityCode))
@@ -273,7 +311,7 @@ export async function getCatPhoto(ctx: OrgContext, id: string) {
   return getStorage().get(row.photoKey);
 }
 
-async function deletePhotoQuietly(key: string): Promise<void> {
+export async function deletePhotoQuietly(key: string): Promise<void> {
   try {
     await getStorage().delete(key);
   } catch (error) {

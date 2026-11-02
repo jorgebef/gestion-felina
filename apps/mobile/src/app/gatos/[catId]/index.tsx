@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, router, Stack, useLocalSearchParams } from "expo-router";
-import { ClipboardList, Pencil, Plus, Trash2 } from "lucide-react-native";
+import { ClipboardList, Pencil, Plus } from "lucide-react-native";
 import { Text, View } from "react-native";
 import { toast } from "sonner-native";
 
@@ -14,13 +14,13 @@ import { ErrorState, Facts, LoadingState, PageHeader, SectionTitle } from "@/com
 import { ActionRow } from "@/components/felina/action-row";
 import { sexLabel, SterilizedBadge } from "@/components/felina/badges";
 import { CatPhoto } from "@/components/felina/cat-photo";
+import { DeleteOrRequestButton, PendingDeletionNotice } from "@/components/felina/deletion";
 import { LocationMap } from "@/components/felina/location-map";
 import { ProposalList } from "@/components/felina/proposals";
 import { ProposeChangeSheet } from "@/components/felina/propose-change-sheet";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { confirm } from "@/lib/confirm";
 import { catQuery, proposalsQuery } from "@/lib/queries";
 import { useMembership } from "@/lib/session";
 
@@ -51,6 +51,7 @@ export default function CatDetail() {
   }
   const { cat, permissions } = query.data;
   const name = catDisplayName(cat);
+  const target = { type: "cat" as const, id: cat.id, name };
 
   return (
     <Screen onRefresh={() => Promise.all([query.refetch(), proposals.refetch()])}>
@@ -70,47 +71,43 @@ export default function CatDetail() {
             {permissions.canPropose ? (
               <ProposeChangeSheet target={{ type: "cat", id: cat.id, current: cat }} />
             ) : null}
-            {permissions.canEdit ? (
-              <>
-                <Link
-                  href={{
-                    pathname: "/acciones/nueva",
-                    params: { catId, colonyId: cat.colonyId ?? undefined },
-                  }}
-                  asChild
-                >
-                  <Button variant="outline" icon={Plus}>
-                    Acción
-                  </Button>
-                </Link>
-                <Link href={`/gatos/${catId}/editar`} asChild>
-                  <Button variant="outline" icon={Pencil}>
-                    Editar
-                  </Button>
-                </Link>
-              </>
-            ) : null}
-            {permissions.canDelete ? (
-              <Button
-                variant="ghost"
-                tone="negative"
-                icon={Trash2}
-                loading={remove.isPending}
-                onPress={async () => {
-                  const ok = await confirm({
-                    title: `¿Eliminar a ${name}?`,
-                    message:
-                      "Se borrará su ficha y su foto, y dejará de aparecer en las acciones. No se puede deshacer.",
-                    confirmLabel: "Eliminar",
-                  });
-                  if (ok) remove.mutate();
+            {permissions.canAddActions ? (
+              <Link
+                href={{
+                  pathname: "/acciones/nueva",
+                  params: { catId, colonyId: cat.colonyId ?? undefined },
                 }}
+                asChild
               >
-                Eliminar
-              </Button>
+                <Button variant="outline" icon={Plus}>
+                  Acción
+                </Button>
+              </Link>
             ) : null}
+            {permissions.canEdit ? (
+              <Link href={`/gatos/${catId}/editar`} asChild>
+                <Button variant="outline" icon={Pencil}>
+                  Editar
+                </Button>
+              </Link>
+            ) : null}
+            <DeleteOrRequestButton
+              target={target}
+              permissions={permissions}
+              pendingDeletion={query.data.pendingDeletion}
+              consequences="Se borrarán su ficha y su foto, y dejará de aparecer en las acciones."
+              onDelete={() => remove.mutate()}
+              deleting={remove.isPending}
+            />
           </>
         }
+      />
+
+      <PendingDeletionNotice
+        target={target}
+        pending={query.data.pendingDeletion}
+        canResolve={permissions.canResolveDeletion}
+        onApproved={() => router.back()}
       />
 
       <Card className="gap-4 p-5">

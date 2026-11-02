@@ -27,7 +27,13 @@ import {
 } from "./routes/account.ts";
 import { actionRoutes, dashboardRoutes } from "./routes/actions.ts";
 import { adminRoutes } from "./routes/admin.ts";
-import { catRoutes, colonyRoutes, proposalRoutes, uploadRoutes } from "./routes/colonies.ts";
+import {
+  catRoutes,
+  colonyRoutes,
+  deletionRoutes,
+  proposalRoutes,
+  uploadRoutes,
+} from "./routes/colonies.ts";
 
 /** Application API mounted at /api/v1. Its type drives `@felina/api-client`. */
 export const v1Routes = new Hono()
@@ -41,6 +47,7 @@ export const v1Routes = new Hono()
   .route("/uploads", uploadRoutes)
   .route("/actions", actionRoutes)
   .route("/proposals", proposalRoutes)
+  .route("/deletion-requests", deletionRoutes)
   .route("/dashboard", dashboardRoutes)
   .route("/admin", adminRoutes);
 

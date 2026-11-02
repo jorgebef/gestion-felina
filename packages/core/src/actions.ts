@@ -36,11 +36,12 @@ import {
   assertAssociation,
   assertTownHall,
   DomainError,
-  isAdmin,
+  isAssociation,
   isTownHall,
   mapDbError,
   type OrgContext,
 } from "./context.ts";
+import { assertCanDelete, deletionPermissions, pendingDeletionFor } from "./permissions.ts";
 
 const PAGE_SIZE = 50;
 
@@ -165,15 +166,17 @@ export function getAction(ctx: OrgContext, id: string) {
       .where(eq(actionParticipants.actionId, id));
 
     const mine = action.organizationId === ctx.membership.organization.id;
-    const { createdBy, ...rest } = action;
+    const canEdit = mine && isAssociation(ctx);
+    const { createdBy: _createdBy, ...rest } = action;
     return {
       action: rest,
       cats: actionCatRows,
       participants: mine ? participants : [],
       participantCount: participants.length,
+      pendingDeletion: mine ? await pendingDeletionFor(tx, ctx, "action", id) : null,
       permissions: {
-        canEdit: mine,
-        canDelete: mine && (isAdmin(ctx) || createdBy === ctx.user.id),
+        canEdit,
+        ...deletionPermissions(ctx, mine, canEdit),
         canValidate:
           isTownHall(ctx) &&
           ctx.membership.organization.municipalityCode === action.municipalityCode,
@@ -234,23 +237,14 @@ function values(data: ActionInput, municipalityCode: string) {
 /**
  * A sterilization that ends up done marks its cats as sterilized (only those that
  * aren't yet). Reopening or cancelling the action never unmarks them: that is a
- * manual decision on the cat. Returns how many cats changed.
+ * manual decision on the cat. Returns how many cats changed. Any member completes
+ * actions, also on cats of colonies they don't manage, hence the database function.
  */
 async function markCatsSterilized(tx: TenantTx, actionId: string): Promise<number> {
-  const updated = await tx
-    .update(cats)
-    .set({ sterilized: true })
-    .where(
-      and(
-        eq(cats.sterilized, false),
-        sql`${cats.id} in (select ${actionCats.catId} from ${actionCats}
-          join ${actions} on ${actions.id} = ${actionCats.actionId}
-          where ${actionCats.actionId} = ${actionId}
-            and ${actions.actionType} = 'sterilization' and ${actions.status} = 'done')`,
-      ),
-    )
-    .returning({ id: cats.id });
-  return updated.length;
+  const result = await tx.execute<{ count: number }>(
+    sql`select app_mark_action_cats_sterilized(${actionId}) as count`,
+  );
+  return Number(result.rows[0]?.count ?? 0);
 }
 
 const writeErrors = {
@@ -305,21 +299,20 @@ export async function setActionStatus(ctx: OrgContext, id: string, status: Actio
   });
 }
 
+/** Admins only; the rest ask for it (deletions.ts). */
 export async function deleteAction(ctx: OrgContext, id: string) {
   assertAssociation(ctx);
-  return withTenant(ctx.user.id, async (tx) => {
-    const deleted = await tx
-      .delete(actions)
-      .where(and(eq(actions.id, id), eq(actions.organizationId, ctx.membership.organization.id)))
-      .returning({ id: actions.id });
-    if (!deleted.length) {
-      throw new DomainError(
-        "FORBIDDEN",
-        "Solo los administradores o quien creó la acción pueden eliminarla",
-      );
-    }
-    return { ok: true as const };
-  });
+  assertCanDelete(ctx);
+  return withTenant(ctx.user.id, (tx) => deleteActionIn(tx, ctx, id));
+}
+
+export async function deleteActionIn(tx: TenantTx, ctx: OrgContext, id: string) {
+  const deleted = await tx
+    .delete(actions)
+    .where(and(eq(actions.id, id), eq(actions.organizationId, ctx.membership.organization.id)))
+    .returning({ id: actions.id });
+  if (!deleted.length) throw new DomainError("NOT_FOUND", "La acción no existe");
+  return { ok: true as const };
 }
 
 export async function setActionValidation(ctx: OrgContext, id: string, validated: boolean) {

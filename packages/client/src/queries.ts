@@ -8,7 +8,7 @@ import type { ActionListQuery } from "@felina/schemas/action";
 import type { CatListQuery } from "@felina/schemas/cat";
 import type { ColonyListQuery } from "@felina/schemas/colony";
 import type { OrganizationListQuery } from "@felina/schemas/organization";
-import type { ProposalStatus } from "@felina/domain/felina";
+import type { DeletionStatus, ProposalStatus } from "@felina/domain/felina";
 
 import { api } from "./api.ts";
 
@@ -108,6 +108,12 @@ export const proposalsQuery = (
   queryOptions({
     queryKey: ["proposals", query],
     queryFn: () => api().proposals.list(query),
+  });
+
+export const deletionRequestsQuery = (query: { status?: DeletionStatus } = {}) =>
+  queryOptions({
+    queryKey: ["deletion-requests", query],
+    queryFn: () => api().deletions.list(query),
   });
 
 export const organizationQuery = queryOptions({

@@ -18,6 +18,7 @@ import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as RecuperarRouteImport } from './routes/recuperar'
 import { Route as RestablecerRouteImport } from './routes/restablecer'
 import { Route as AppAjustesRouteImport } from './routes/_app/ajustes'
+import { Route as AppEliminacionesRouteImport } from './routes/_app/eliminaciones'
 import { Route as AppEquipoRouteImport } from './routes/_app/equipo'
 import { Route as AppFeedRouteImport } from './routes/_app/feed'
 import { Route as AppPanelRouteImport } from './routes/_app/panel'
@@ -81,6 +82,11 @@ const RestablecerRoute = RestablecerRouteImport.update({
 const AppAjustesRoute = AppAjustesRouteImport.update({
   id: '/ajustes',
   path: '/ajustes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEliminacionesRoute = AppEliminacionesRouteImport.update({
+  id: '/eliminaciones',
+  path: '/eliminaciones',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEquipoRoute = AppEquipoRouteImport.update({
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
   '/ajustes': typeof AppAjustesRoute
+  '/eliminaciones': typeof AppEliminacionesRoute
   '/equipo': typeof AppEquipoRoute
   '/feed': typeof AppFeedRoute
   '/panel': typeof AppPanelRoute
@@ -226,6 +233,7 @@ export interface FileRoutesByTo {
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
   '/ajustes': typeof AppAjustesRoute
+  '/eliminaciones': typeof AppEliminacionesRoute
   '/equipo': typeof AppEquipoRoute
   '/feed': typeof AppFeedRoute
   '/panel': typeof AppPanelRoute
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
   '/_app/ajustes': typeof AppAjustesRoute
+  '/_app/eliminaciones': typeof AppEliminacionesRoute
   '/_app/equipo': typeof AppEquipoRoute
   '/_app/feed': typeof AppFeedRoute
   '/_app/panel': typeof AppPanelRoute
@@ -290,6 +299,7 @@ export interface FileRouteTypes {
     | '/recuperar'
     | '/restablecer'
     | '/ajustes'
+    | '/eliminaciones'
     | '/equipo'
     | '/feed'
     | '/panel'
@@ -319,6 +329,7 @@ export interface FileRouteTypes {
     | '/recuperar'
     | '/restablecer'
     | '/ajustes'
+    | '/eliminaciones'
     | '/equipo'
     | '/feed'
     | '/panel'
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/recuperar'
     | '/restablecer'
     | '/_app/ajustes'
+    | '/_app/eliminaciones'
     | '/_app/equipo'
     | '/_app/feed'
     | '/_app/panel'
@@ -448,6 +460,13 @@ declare module '@tanstack/react-router' {
       path: '/ajustes'
       fullPath: '/ajustes'
       preLoaderRoute: typeof AppAjustesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/eliminaciones': {
+      id: '/_app/eliminaciones'
+      path: '/eliminaciones'
+      fullPath: '/eliminaciones'
+      preLoaderRoute: typeof AppEliminacionesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/equipo': {
@@ -595,6 +614,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAjustesRoute: typeof AppAjustesRoute
+  AppEliminacionesRoute: typeof AppEliminacionesRoute
   AppEquipoRoute: typeof AppEquipoRoute
   AppFeedRoute: typeof AppFeedRoute
   AppPanelRoute: typeof AppPanelRoute
@@ -615,6 +635,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAjustesRoute: AppAjustesRoute,
+  AppEliminacionesRoute: AppEliminacionesRoute,
   AppEquipoRoute: AppEquipoRoute,
   AppFeedRoute: AppFeedRoute,
   AppPanelRoute: AppPanelRoute,
