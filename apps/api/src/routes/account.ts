@@ -2,6 +2,13 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 
+import {
+  getOrganizationAvatar,
+  getUserAvatar,
+  removeMyAvatar,
+  setMyAvatar,
+  setOrganizationAvatar,
+} from "@felina/core/avatars";
 import { readViewer } from "@felina/core/context";
 import { getMunicipality, searchMunicipalities } from "@felina/core/municipalities";
 import {
@@ -30,6 +37,7 @@ import {
 import { z } from "zod";
 
 import { isGoogleAuthEnabled } from "../auth.ts";
+import { imageResponse, uploadedImage } from "../images.ts";
 import { onInvalid, requireOrg, requireUser, sessionUser } from "../middleware.ts";
 
 const id = zValidator("param", idParamSchema, onInvalid);
@@ -40,6 +48,10 @@ export const publicRoutes = new Hono()
   /** What an invitation link is about, before signing in. */
   .get("/invitations/:token", token, async (c) =>
     c.json(await getInvitationPreview(c.req.valid("param").token)),
+  )
+  /** An organization's photo (public, like its name on an invitation). */
+  .get("/organizations/:id/avatar", id, async (c) =>
+    imageResponse(c, await getOrganizationAvatar(c.req.valid("param").id), "public"),
   );
 
 export const meRoutes = new Hono()
@@ -47,14 +59,24 @@ export const meRoutes = new Hono()
   .get("/", async (c) => {
     const user = await sessionUser(c.req.raw.headers);
     if (!user) return c.json(null);
-    const viewer = await readViewer(user.id);
-    return c.json({ user, ...viewer });
+    const { avatar, ...viewer } = await readViewer(user.id);
+    return c.json({ user: { ...user, avatar }, ...viewer });
   })
   /** The caller's own account (profile page). */
   .get("/profile", requireUser, async (c) => c.json(await getMyProfile(c.var.ctx)))
   .patch("/", requireUser, zValidator("json", userProfileSchema, onInvalid), async (c) =>
     c.json(await updateMyProfile(c.var.ctx, c.req.valid("json"))),
-  );
+  )
+  /** Own profile photo: multipart/form-data with a `file` field. */
+  .post("/avatar", requireUser, async (c) =>
+    c.json(await setMyAvatar(c.var.ctx, await uploadedImage(c)), 201),
+  )
+  .delete("/avatar", requireUser, async (c) => c.json(await removeMyAvatar(c.var.ctx)));
+
+/** People's profile photos, for whoever can see them. */
+export const userRoutes = new Hono().get("/:id/avatar", requireUser, id, async (c) =>
+  imageResponse(c, await getUserAvatar(c.var.ctx, c.req.valid("param").id)),
+);
 
 export const invitationRoutes = new Hono()
   .post("/:token/accept", requireUser, token, async (c) =>
@@ -86,6 +108,13 @@ export const organizationRoutes = new Hono()
     requireOrg,
     zValidator("json", organizationUpdateSchema, onInvalid),
     async (c) => c.json(await updateMyOrganization(c.var.ctx, c.req.valid("json"))),
+  )
+  /** The organization's photo (admins): multipart/form-data with a `file` field. */
+  .post("/current/avatar", requireOrg, async (c) =>
+    c.json(await setOrganizationAvatar(c.var.ctx, await uploadedImage(c)), 201),
+  )
+  .delete("/current/avatar", requireOrg, async (c) =>
+    c.json(await setOrganizationAvatar(c.var.ctx, null)),
   )
   .get("/current/members", requireOrg, async (c) => c.json(await listMembers(c.var.ctx)))
   .patch(

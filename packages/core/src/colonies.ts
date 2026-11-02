@@ -69,7 +69,9 @@ export function listColonies(ctx: OrgContext, query: ColonyListQuery) {
         longitude: colonies.longitude,
         municipalityCode: colonies.municipalityCode,
         municipalityName: municipalities.name,
+        organizationId: colonies.organizationId,
         organizationName: organizations.name,
+        organizationAvatar: organizations.avatarKey,
         authorizedAt: colonies.authorizedAt,
         catCount,
         pendingProposals,
@@ -98,6 +100,7 @@ export function getColony(ctx: OrgContext, id: string) {
         id: colonies.id,
         organizationId: colonies.organizationId,
         organizationName: organizations.name,
+        organizationAvatar: organizations.avatarKey,
         name: colonies.name,
         description: colonies.description,
         latitude: colonies.latitude,
@@ -244,7 +247,12 @@ async function assertColonyOfOrg(tx: TenantTx, ctx: OrgContext, id: string) {
 
 function listManagers(tx: TenantTx, colonyId: string) {
   return tx
-    .select({ userId: colonyManagers.userId, name: users.fullName, email: users.email })
+    .select({
+      userId: colonyManagers.userId,
+      name: users.fullName,
+      email: users.email,
+      avatar: users.avatarKey,
+    })
     .from(colonyManagers)
     .innerJoin(users, eq(users.id, colonyManagers.userId))
     .where(eq(colonyManagers.colonyId, colonyId))

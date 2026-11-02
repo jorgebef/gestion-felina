@@ -17,6 +17,7 @@ import { formatDate, formatDateTime } from "@/lib/format";
 import { municipalityQuery } from "@/lib/queries";
 
 import { ProposalStatusBadge } from "./badges";
+import { EntityAvatar, EntityLabel } from "./EntityAvatar";
 
 export type Proposal = ApiData<Api["proposals"]["list"]>[number];
 
@@ -71,7 +72,15 @@ function ProposalCard({ proposal, canResolve }: { proposal: Proposal; canResolve
         Colonia «{proposal.colonyName}»
       </Link>
     ) : proposal.catId ? (
-      <Link to="/gatos/$catId" params={{ catId: proposal.catId }} className="hover:underline">
+      <Link
+        to="/gatos/$catId"
+        params={{ catId: proposal.catId }}
+        className="inline-flex items-center gap-2 hover:underline"
+      >
+        <EntityAvatar
+          entity={{ kind: "cat", id: proposal.catId }}
+          name={catDisplayName({ name: proposal.catName })}
+        />
         Gato «{catDisplayName({ name: proposal.catName })}»
       </Link>
     ) : (
@@ -86,10 +95,28 @@ function ProposalCard({ proposal, canResolve }: { proposal: Proposal; canResolve
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="font-medium">{target}</p>
-          <p className="text-xs text-muted-foreground">
-            {proposal.incoming
-              ? `Propuesta de ${proposal.proposedByOrganizationName}`
-              : `Enviada a ${proposal.targetOrganizationName}`}{" "}
+          <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+            {proposal.incoming ? "Propuesta de" : "Enviada a"}
+            <EntityLabel
+              entity={
+                proposal.incoming
+                  ? {
+                      kind: "town_hall",
+                      id: proposal.proposedByOrganizationId,
+                      avatar: proposal.proposedByOrganizationAvatar,
+                    }
+                  : {
+                      kind: "association",
+                      id: proposal.targetOrganizationId,
+                      avatar: proposal.targetOrganizationAvatar,
+                    }
+              }
+              name={
+                (proposal.incoming
+                  ? proposal.proposedByOrganizationName
+                  : proposal.targetOrganizationName) ?? ""
+              }
+            />
             · {formatDateTime(proposal.createdAt)}
           </p>
         </div>

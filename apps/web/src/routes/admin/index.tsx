@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Building2, Landmark, Loader2, Plus, Search } from "lucide-react";
+import { Building2, Loader2, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -16,6 +16,7 @@ import { APP_NAME } from "@/components/brand/Logo";
 import { EmptyState, ErrorState, PageHeader } from "@/components/app/states";
 import { RowsSkeleton } from "@/components/app/skeletons";
 import { OrganizationStatusBadge, Pill } from "@/components/felina/badges";
+import { EntityAvatar } from "@/components/felina/EntityAvatar";
 import { MunicipalityPicker, type MunicipalityValue } from "@/components/felina/MunicipalityPicker";
 import { Field, FormError } from "@/components/forms/Field";
 import { Button } from "@/components/ui/button";
@@ -256,11 +257,11 @@ function AdminHome() {
                 className="flex flex-col gap-2 px-4 py-3 hover:bg-accent/50 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  {o.kind === "town_hall" ? (
-                    <Landmark className="size-5 shrink-0 text-muted-foreground" />
-                  ) : (
-                    <Building2 className="size-5 shrink-0 text-muted-foreground" />
-                  )}
+                  <EntityAvatar
+                    entity={{ kind: o.kind, id: o.id, avatar: o.avatar }}
+                    name={o.name}
+                    size="md"
+                  />
                   <div className="min-w-0">
                     <p className="truncate font-medium">{o.name}</p>
                     <p className="truncate text-xs text-muted-foreground">

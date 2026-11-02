@@ -8,6 +8,8 @@ import { formatDate } from "@felina/client/format";
 
 import { Screen } from "@/components/app/screen";
 import { ErrorState, Facts, LoadingState, SectionTitle } from "@/components/app/states";
+import { AvatarUpload } from "@/components/felina/avatar-upload";
+import { EntityAvatar } from "@/components/felina/entity-avatar";
 import { OrganizationStatusBadge } from "@/components/felina/badges";
 import { OrganizationForm } from "@/components/forms/organization-form";
 import { Card } from "@/components/ui/card";
@@ -38,6 +40,31 @@ export default function Settings() {
         </Link>
         .
       </Text>
+
+      <Card className="gap-4 p-5">
+        <View className="gap-1">
+          <SectionTitle>Foto de perfil</SectionTitle>
+          <Text className="text-sm text-muted-foreground">
+            {canManage
+              ? "El logo o la imagen de tu organización. Aparece junto a su nombre en toda la plataforma."
+              : "Solo los administradores pueden cambiarla."}
+          </Text>
+        </View>
+        {canManage ? (
+          <AvatarUpload
+            entity={{ kind: org.kind, id: org.id, avatar: org.avatar }}
+            name={org.name}
+            upload={(file) => api().organizations.uploadAvatar(file)}
+            remove={() => api().organizations.removeAvatar()}
+          />
+        ) : (
+          <EntityAvatar
+            entity={{ kind: org.kind, id: org.id, avatar: org.avatar }}
+            name={org.name}
+            size="xl"
+          />
+        )}
+      </Card>
 
       <Card className="gap-5 p-5">
         <View className="gap-1">

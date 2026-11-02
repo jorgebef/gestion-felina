@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { EntityAvatar } from "./EntityAvatar";
 import { errorMessage } from "@/lib/errors";
 import { membersQuery } from "@/lib/queries";
 
@@ -20,6 +21,7 @@ export interface ColonyManager {
   userId: string;
   name: string | null;
   email: string;
+  avatar: string | null;
 }
 
 const NOBODY = "none";
@@ -90,11 +92,17 @@ export function ColonyManagers({
         <ul className="mt-3 space-y-2 text-sm">
           {managers.map((m) => (
             <li key={m.userId} className="flex items-center justify-between gap-2">
-              <span className="min-w-0">
-                <span className="block truncate font-medium">{m.name || m.email}</span>
-                {m.name ? (
-                  <span className="block truncate text-xs text-muted-foreground">{m.email}</span>
-                ) : null}
+              <span className="flex min-w-0 items-center gap-2.5">
+                <EntityAvatar
+                  entity={{ kind: "user", id: m.userId, avatar: m.avatar }}
+                  name={m.name || m.email}
+                />
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{m.name || m.email}</span>
+                  {m.name ? (
+                    <span className="block truncate text-xs text-muted-foreground">{m.email}</span>
+                  ) : null}
+                </span>
               </span>
               {canManageManagers ? (
                 <Button
@@ -129,6 +137,11 @@ export function ColonyManagers({
             <SelectContent>
               {candidates.map((m) => (
                 <SelectItem key={m.userId} value={m.userId}>
+                  <EntityAvatar
+                    entity={{ kind: "user", id: m.userId, avatar: m.avatar }}
+                    name={m.name || m.email}
+                    size="xs"
+                  />
                   {m.name || m.email}
                 </SelectItem>
               ))}

@@ -36,6 +36,8 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
 
+import { EntityLabel } from "./EntityAvatar";
+
 export interface DeletionTargetRef {
   type: DeletionTarget;
   id: string;
@@ -47,7 +49,9 @@ export interface PendingDeletion {
   id: string;
   reason: string | null;
   createdAt: string;
+  requestedById: string | null;
   requestedByName: string | null;
+  requestedByAvatar: string | null;
   requestedByMe: boolean;
 }
 
@@ -231,15 +235,14 @@ export function PendingDeletionNotice({
       role="status"
       className="mb-6 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm"
     >
-      <p className="font-medium text-warning">
-        Eliminación pendiente de aprobación
-        <span className="font-normal text-foreground">
-          {" "}
-          · pedida por {pending.requestedByMe
-            ? "ti"
-            : (pending.requestedByName ?? "alguien")} el{" "}
-          {formatDateTime(pending.createdAt)}
-        </span>
+      <p className="font-medium text-warning">Eliminación pendiente de aprobación</p>
+      <p className="mt-1 flex flex-wrap items-center gap-1">
+        Pedida por
+        <EntityLabel
+          entity={{ kind: "user", id: pending.requestedById, avatar: pending.requestedByAvatar }}
+          name={pending.requestedByMe ? "ti" : (pending.requestedByName ?? "alguien")}
+        />
+        el {formatDateTime(pending.createdAt)}
       </p>
       {pending.reason ? <p className="mt-1">Motivo: «{pending.reason}»</p> : null}
 

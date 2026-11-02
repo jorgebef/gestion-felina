@@ -11,6 +11,7 @@ import { CardsSkeleton, MapSkeleton } from "@/components/app/skeletons";
 import { EmptyState, ErrorState } from "@/components/app/states";
 import { searchBarOptions } from "@/components/app/tab-stack";
 import { AuthorizationBadge } from "@/components/felina/badges";
+import { EntityLabel } from "@/components/felina/entity-avatar";
 import { LocationMap } from "@/components/felina/location-map";
 import { Pill } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -127,9 +128,18 @@ export default function Colonies() {
                     {[c.address, c.municipalityName].filter(Boolean).join(" · ")}
                   </Text>
                   {isTownHall && c.organizationName ? (
-                    <Text className="text-sm text-muted-foreground">
-                      Gestiona: {c.organizationName}
-                    </Text>
+                    <View className="flex-row items-center gap-1">
+                      <Text className="text-sm text-muted-foreground">Gestiona:</Text>
+                      <EntityLabel
+                        entity={{
+                          kind: "association",
+                          id: c.organizationId,
+                          avatar: c.organizationAvatar,
+                        }}
+                        name={c.organizationName}
+                        textClassName="text-sm text-muted-foreground"
+                      />
+                    </View>
                   ) : null}
                   <View className="mt-2 flex-row flex-wrap items-center gap-2">
                     <Icon icon={Cat} color="muted-foreground" size={13} />

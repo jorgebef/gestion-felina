@@ -76,7 +76,7 @@ async function pick(source: Source): Promise<ImagePicker.ImagePickerAsset | null
   return result.canceled ? null : (result.assets[0] ?? null);
 }
 
-function chooseSource(): Promise<Source | null> {
+function chooseSource(title: string): Promise<Source | null> {
   return new Promise((resolve) => {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -85,12 +85,28 @@ function chooseSource(): Promise<Source | null> {
       );
       return;
     }
-    Alert.alert("Foto principal", undefined, [
+    Alert.alert(title, undefined, [
       { text: "Hacer una foto", onPress: () => resolve("camera") },
       { text: "Elegir de la galería", onPress: () => resolve("library") },
       { text: "Cancelar", style: "cancel", onPress: () => resolve(null) },
     ]);
   });
+}
+
+/** Asks camera or library, then lets the person take or choose a square photo. */
+export async function pickPhoto(title: string): Promise<ImagePicker.ImagePickerAsset | null> {
+  const source = await chooseSource(title);
+  return source ? pick(source) : null;
+}
+
+/** What the API client uploads for a picked photo. */
+export function photoFile(asset: ImagePicker.ImagePickerAsset) {
+  const type = asset.mimeType ?? "image/jpeg";
+  return {
+    uri: asset.uri,
+    name: asset.fileName ?? `foto.${type.split("/")[1] ?? "jpg"}`,
+    type,
+  };
 }
 
 /**
@@ -116,9 +132,7 @@ export function PhotoInput({
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const choose = async () => {
-    const source = await chooseSource();
-    if (!source) return;
-    const asset = await pick(source);
+    const asset = await pickPhoto("Foto principal");
     if (!asset) return;
     setUploadError(null);
     if (asset.fileSize && asset.fileSize > MAX_PHOTO_BYTES) {
@@ -127,12 +141,7 @@ export function PhotoInput({
     }
     setUploading(true);
     try {
-      const type = asset.mimeType ?? "image/jpeg";
-      const { photoKey: key } = await api().cats.uploadPhoto({
-        uri: asset.uri,
-        name: asset.fileName ?? `foto.${type.split("/")[1] ?? "jpg"}`,
-        type,
-      });
+      const { photoKey: key } = await api().cats.uploadPhoto(photoFile(asset));
       setPreview(asset.uri);
       onChange(key);
     } catch (e) {

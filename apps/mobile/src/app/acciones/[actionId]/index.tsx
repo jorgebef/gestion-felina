@@ -23,6 +23,7 @@ import {
   ValidationBadge,
 } from "@/components/felina/badges";
 import { DeleteOrRequestButton, PendingDeletionNotice } from "@/components/felina/deletion";
+import { EntityAvatar, EntityLabel } from "@/components/felina/entity-avatar";
 import { CatPhoto } from "@/components/felina/cat-photo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -160,7 +161,21 @@ export default function ActionDetail() {
       <Card className="gap-4 p-5">
         <Facts
           items={[
-            { label: "Asociación", value: action.organizationName ?? "—" },
+            {
+              label: "Asociación",
+              value: action.organizationName ? (
+                <EntityLabel
+                  entity={{
+                    kind: "association",
+                    id: action.organizationId,
+                    avatar: action.organizationAvatar,
+                  }}
+                  name={action.organizationName}
+                />
+              ) : (
+                "—"
+              ),
+            },
             {
               label: "Colonia",
               value: action.colonyId ? (
@@ -229,9 +244,21 @@ export default function ActionDetail() {
         ) : query.data.participants.length ? (
           <View className="gap-2">
             {query.data.participants.map((p) => (
-              <View key={p.userId}>
-                <Text className="text-base font-medium text-foreground">{p.name || p.email}</Text>
-                {p.name ? <Text className="text-xs text-muted-foreground">{p.email}</Text> : null}
+              <View key={p.userId} className="flex-row items-center gap-3">
+                <EntityAvatar
+                  entity={{ kind: "user", id: p.userId, avatar: p.avatar }}
+                  name={p.name || p.email || "Participante"}
+                />
+                <View className="flex-1">
+                  <Text numberOfLines={1} className="text-base font-medium text-foreground">
+                    {p.name || p.email}
+                  </Text>
+                  {p.name ? (
+                    <Text numberOfLines={1} className="text-xs text-muted-foreground">
+                      {p.email}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
             ))}
           </View>

@@ -24,6 +24,8 @@ export interface Membership {
     reviewNote: string | null;
     municipalityCode: string | null;
     municipalityName: string | null;
+    /** Storage key of its photo (also its cache version), or null. */
+    avatar: string | null;
   };
 }
 
@@ -64,10 +66,10 @@ export class DomainError extends Error {
 /** The caller's single organization (in any state) and their platform-admin flag. */
 export async function readViewer(
   userId: string,
-): Promise<{ isPlatformAdmin: boolean; membership: Membership | null }> {
+): Promise<{ isPlatformAdmin: boolean; avatar: string | null; membership: Membership | null }> {
   return withTenant(userId, async (tx) => {
     const [me] = await tx
-      .select({ isPlatformAdmin: users.isPlatformAdmin })
+      .select({ isPlatformAdmin: users.isPlatformAdmin, avatar: users.avatarKey })
       .from(users)
       .where(eq(users.id, userId));
     const [row] = await tx
@@ -80,6 +82,7 @@ export async function readViewer(
         reviewNote: organizations.reviewNote,
         municipalityCode: organizations.municipalityCode,
         municipalityName: municipalities.name,
+        avatar: organizations.avatarKey,
       })
       .from(organizationMembers)
       .innerJoin(organizations, eq(organizations.id, organizationMembers.organizationId))
@@ -87,6 +90,8 @@ export async function readViewer(
       .where(eq(organizationMembers.userId, userId));
     return {
       isPlatformAdmin: me?.isPlatformAdmin ?? false,
+      /** The caller's own profile photo (storage key, also its cache version). */
+      avatar: me?.avatar ?? null,
       membership: row
         ? {
             role: row.role,
@@ -98,6 +103,7 @@ export async function readViewer(
               reviewNote: row.reviewNote,
               municipalityCode: row.municipalityCode,
               municipalityName: row.municipalityName,
+              avatar: row.avatar,
             },
           }
         : null,

@@ -4,6 +4,7 @@ import { Clock, LogOut, MailOpen, ShieldAlert, ShieldCheck, UserRound } from "lu
 
 import { APP_NAME, Logo } from "@/components/brand/Logo";
 import { OrganizationStatusBadge } from "@/components/felina/badges";
+import { EntityAvatar } from "@/components/felina/EntityAvatar";
 import { emptyOrganization, OrganizationForm } from "@/components/forms/OrganizationForm";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -69,10 +70,19 @@ function Onboarding() {
         {membership ? (
           <section className="surface p-6">
             <div className="flex items-center gap-3">
+              <EntityAvatar
+                entity={{
+                  kind: membership.organization.kind,
+                  id: membership.organization.id,
+                  avatar: membership.organization.avatar,
+                }}
+                name={membership.organization.name}
+                size="md"
+              />
               {membership.organization.status === "pending" ? (
-                <Clock className="size-6 text-warning" />
+                <Clock className="size-5 text-warning" />
               ) : (
-                <ShieldAlert className="size-6 text-negative" />
+                <ShieldAlert className="size-5 text-negative" />
               )}
               <h1 className="text-xl font-semibold tracking-tight">
                 {membership.organization.name}

@@ -6,6 +6,7 @@ import { MEMBER_ROLE_LABELS, ORGANIZATION_KIND_LABELS } from "@felina/domain/fel
 
 import { APP_NAME, Logo } from "@/components/brand/Logo";
 import { ErrorState } from "@/components/app/states";
+import { EntityAvatar } from "@/components/felina/EntityAvatar";
 import { FormError } from "@/components/forms/Field";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -60,7 +61,18 @@ function InvitationPage() {
   return (
     <Shell>
       <div className="surface p-6">
-        <MailOpen className="size-6 text-brand" />
+        <div className="flex items-center gap-3">
+          <EntityAvatar
+            entity={{
+              kind: invitation.organizationKind,
+              id: invitation.organizationId,
+              avatar: invitation.organizationAvatar,
+            }}
+            name={invitation.organizationName}
+            size="lg"
+          />
+          <MailOpen className="size-5 text-brand" />
+        </div>
         <h1 className="mt-3 text-xl font-semibold tracking-tight">
           Invitación a {invitation.organizationName}
         </h1>

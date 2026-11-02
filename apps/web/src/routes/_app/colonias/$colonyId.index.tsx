@@ -7,6 +7,7 @@ import { APP_NAME } from "@/components/brand/Logo";
 import { EmptyState, Facts, PageHeader } from "@/components/app/states";
 import { CardsSkeleton, CatCardsSkeleton, RowsSkeleton } from "@/components/app/skeletons";
 import { ActionRow } from "@/components/felina/ActionRow";
+import { EntityLabel } from "@/components/felina/EntityAvatar";
 import { AuthorizationBadge } from "@/components/felina/badges";
 import { CatCard } from "@/components/felina/CatCard";
 import { ColonyManagers } from "@/components/felina/ColonyManagers";
@@ -124,7 +125,21 @@ function ColonyDetail() {
           <section className="surface p-5">
             <Facts
               items={[
-                { label: "Asociación gestora", value: colony.organizationName ?? "—" },
+                {
+                  label: "Asociación gestora",
+                  value: colony.organizationName ? (
+                    <EntityLabel
+                      entity={{
+                        kind: "association",
+                        id: colony.organizationId,
+                        avatar: colony.organizationAvatar,
+                      }}
+                      name={colony.organizationName}
+                    />
+                  ) : (
+                    "—"
+                  ),
+                },
                 { label: "Municipio", value: colony.municipalityName },
                 { label: "Dirección", value: colony.address ?? "—" },
                 {

@@ -24,6 +24,7 @@ import { api } from "@/lib/api";
 import { confirm } from "@/lib/confirm";
 
 import { DeletionStatusBadge } from "./badges";
+import { EntityAvatar, EntityLabel } from "./entity-avatar";
 
 export interface DeletionTargetRef {
   type: DeletionTarget;
@@ -35,7 +36,9 @@ export interface PendingDeletion {
   id: string;
   reason: string | null;
   createdAt: string;
+  requestedById: string | null;
   requestedByName: string | null;
+  requestedByAvatar: string | null;
   requestedByMe: boolean;
 }
 
@@ -272,10 +275,17 @@ export function PendingDeletionNotice({
       <Text className="text-sm font-semibold text-warning">
         Eliminación pendiente de aprobación
       </Text>
-      <Text className="text-sm text-foreground">
-        Pedida por {pending.requestedByMe ? "ti" : (pending.requestedByName ?? "alguien")} el{" "}
-        {formatDateTime(pending.createdAt)}.{pending.reason ? ` Motivo: «${pending.reason}»` : ""}
-      </Text>
+      <View className="flex-row flex-wrap items-center gap-1">
+        <Text className="text-sm text-foreground">Pedida por</Text>
+        <EntityLabel
+          entity={{ kind: "user", id: pending.requestedById, avatar: pending.requestedByAvatar }}
+          name={pending.requestedByMe ? "ti" : (pending.requestedByName ?? "alguien")}
+        />
+        <Text className="text-sm text-foreground">el {formatDateTime(pending.createdAt)}.</Text>
+      </View>
+      {pending.reason ? (
+        <Text className="text-sm text-foreground">Motivo: «{pending.reason}»</Text>
+      ) : null}
       {canResolve ? (
         <ResolveControls name={target.name} resolve={resolve} />
       ) : pending.requestedByMe ? (
@@ -324,18 +334,36 @@ export function DeletionRequestCard({
     <Card className="gap-3 p-4">
       <View className="flex-row items-start justify-between gap-2">
         <View className="flex-1 gap-0.5">
-          {href ? (
-            <Link href={href} className="text-base font-medium text-foreground">
-              {label}
-            </Link>
-          ) : (
-            <Text className="text-base font-medium text-foreground">{label}</Text>
-          )}
-          <Text className="text-xs text-muted-foreground">
-            Pedida por{" "}
-            {request.mine ? "ti" : (request.requestedByName ?? "una persona que ya no está")} ·{" "}
-            {formatDateTime(request.createdAt)}
-          </Text>
+          <View className="flex-row items-center gap-2">
+            {request.targetType === "cat" ? (
+              <EntityAvatar
+                entity={{ kind: "cat", id: request.catId }}
+                name={request.targetLabel}
+              />
+            ) : null}
+            {href ? (
+              <Link href={href} className="shrink text-base font-medium text-foreground">
+                {label}
+              </Link>
+            ) : (
+              <Text className="shrink text-base font-medium text-foreground">{label}</Text>
+            )}
+          </View>
+          <View className="flex-row flex-wrap items-center gap-1">
+            <Text className="text-xs text-muted-foreground">Pedida por</Text>
+            <EntityLabel
+              entity={{
+                kind: "user",
+                id: request.requestedById,
+                avatar: request.requestedByAvatar,
+              }}
+              name={request.mine ? "ti" : (request.requestedByName ?? "una persona que ya no está")}
+              textClassName="text-xs text-muted-foreground"
+            />
+            <Text className="text-xs text-muted-foreground">
+              · {formatDateTime(request.createdAt)}
+            </Text>
+          </View>
         </View>
         <DeletionStatusBadge status={request.status} />
       </View>
@@ -345,12 +373,23 @@ export function DeletionRequestCard({
         </Text>
       ) : null}
       {request.resolvedAt ? (
-        <Text className="text-sm text-muted-foreground">
-          {request.status === "approved" ? "Aprobada" : "Rechazada"}
-          {request.resolvedByName ? ` por ${request.resolvedByName}` : ""} el{" "}
-          {formatDateTime(request.resolvedAt)}
-          {request.resolutionNote ? `: «${request.resolutionNote}»` : "."}
-        </Text>
+        <View className="flex-row flex-wrap items-center gap-1">
+          <Text className="text-sm text-muted-foreground">
+            {request.status === "approved" ? "Aprobada" : "Rechazada"}
+            {request.resolvedByName ? " por" : ""}
+          </Text>
+          {request.resolvedByName ? (
+            <EntityLabel
+              entity={{ kind: "user", id: request.resolvedBy, avatar: request.resolvedByAvatar }}
+              name={request.resolvedByName}
+              textClassName="text-sm text-muted-foreground"
+            />
+          ) : null}
+          <Text className="text-sm text-muted-foreground">
+            el {formatDateTime(request.resolvedAt)}
+            {request.resolutionNote ? `: «${request.resolutionNote}»` : "."}
+          </Text>
+        </View>
       ) : null}
       {pending && canResolve ? (
         <ResolveControls name={request.targetLabel} resolve={resolve} />

@@ -21,6 +21,12 @@ export function CatPhoto({
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
+  const img = useRef<HTMLImageElement>(null);
+  // An image rendered on the server can fail before React attaches `onError`.
+  useEffect(() => {
+    const el = img.current;
+    if (el?.complete && el.naturalWidth === 0) setFailed(true);
+  }, []);
   if (failed) {
     return (
       <div className={cn("grid place-items-center bg-muted text-muted-foreground", className)}>
@@ -30,6 +36,7 @@ export function CatPhoto({
   }
   return (
     <img
+      ref={img}
       src={api().cats.photoUrl(catId, version)}
       alt={alt}
       loading="lazy"

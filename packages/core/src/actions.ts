@@ -99,7 +99,9 @@ export function listActions(ctx: OrgContext, query: ActionListQuery) {
         colonyId: actions.colonyId,
         colonyName: colonies.name,
         municipalityName: municipalities.name,
+        organizationId: actions.organizationId,
         organizationName: organizations.name,
+        organizationAvatar: organizations.avatarKey,
         validatedAt: actions.validatedAt,
         modifiedAfterValidation,
         createdAt: actions.createdAt,
@@ -129,6 +131,7 @@ export function getAction(ctx: OrgContext, id: string) {
         id: actions.id,
         organizationId: actions.organizationId,
         organizationName: organizations.name,
+        organizationAvatar: organizations.avatarKey,
         colonyId: actions.colonyId,
         colonyName: colonies.name,
         municipalityCode: actions.municipalityCode,
@@ -160,7 +163,12 @@ export function getAction(ctx: OrgContext, id: string) {
       .orderBy(sql`${cats.name} asc nulls last`);
     // Names of people are only visible inside their own organization (RLS on users).
     const participants = await tx
-      .select({ userId: actionParticipants.userId, name: users.fullName, email: users.email })
+      .select({
+        userId: actionParticipants.userId,
+        name: users.fullName,
+        email: users.email,
+        avatar: users.avatarKey,
+      })
       .from(actionParticipants)
       .leftJoin(users, eq(users.id, actionParticipants.userId))
       .where(eq(actionParticipants.actionId, id));

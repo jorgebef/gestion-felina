@@ -11,6 +11,7 @@ import { APP_NAME } from "@/components/brand/Logo";
 import { ErrorState, PageHeader } from "@/components/app/states";
 import { RowsSkeleton } from "@/components/app/skeletons";
 import { Pill } from "@/components/felina/badges";
+import { EntityAvatar } from "@/components/felina/EntityAvatar";
 import { InvitationLink } from "@/components/felina/InvitationLink";
 import { Field } from "@/components/forms/Field";
 import {
@@ -178,10 +179,17 @@ function Team() {
                   {invitations.data.map((inv) => (
                     <li key={inv.id} className="space-y-2 px-3 py-2">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="min-w-0">
-                          <span className="block truncate">{inv.email}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {MEMBER_ROLE_LABELS[inv.role]} · caduca el {formatDate(inv.expiresAt)}
+                        <span className="flex min-w-0 items-center gap-2">
+                          {/* Not a member yet: no photo. */}
+                          <EntityAvatar
+                            entity={{ kind: "user", id: null, avatar: null }}
+                            name={inv.email}
+                          />
+                          <span className="min-w-0">
+                            <span className="block truncate">{inv.email}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {MEMBER_ROLE_LABELS[inv.role]} · caduca el {formatDate(inv.expiresAt)}
+                            </span>
                           </span>
                         </span>
                         <Button
@@ -217,13 +225,20 @@ function Team() {
                     key={m.userId}
                     className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">
-                        {m.name || m.email} {me ? <Pill tone="muted">Tú</Pill> : null}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {m.email} · desde {formatDate(m.joinedAt)}
-                      </p>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <EntityAvatar
+                        entity={{ kind: "user", id: m.userId, avatar: m.avatar }}
+                        name={m.name || m.email}
+                        size="md"
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">
+                          {m.name || m.email} {me ? <Pill tone="muted">Tú</Pill> : null}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {m.email} · desde {formatDate(m.joinedAt)}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {isAdmin ? (

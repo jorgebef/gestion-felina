@@ -12,6 +12,7 @@ import { Alert, Text, View } from "react-native";
 import { ORGANIZATION_KIND_LABELS } from "@felina/domain/felina";
 
 import { Screen } from "@/components/app/screen";
+import { EntityAvatar, EntityLabel } from "@/components/felina/entity-avatar";
 import { Card } from "@/components/ui/card";
 import { MenuList } from "@/components/ui/menu-list";
 import { useMembership, useSignOut } from "@/lib/session";
@@ -20,22 +21,25 @@ import { useMembership, useSignOut } from "@/lib/session";
 export default function More() {
   const { viewer, organization } = useMembership();
   const signOut = useSignOut();
-  const initial = (viewer.user.name || viewer.user.email).slice(0, 1).toUpperCase();
 
   return (
     <Screen>
       <Card className="flex-row items-center gap-3 p-4">
-        <View className="size-11 items-center justify-center rounded-full bg-brand-soft">
-          <Text className="text-lg font-semibold text-brand-strong">{initial}</Text>
-        </View>
-        <View className="flex-1">
+        <EntityAvatar
+          entity={{ kind: "user", id: viewer.user.id, avatar: viewer.user.avatar }}
+          name={viewer.user.name || viewer.user.email}
+          size="lg"
+        />
+        <View className="flex-1 gap-0.5">
           <Text className="text-base font-medium text-foreground">
             {viewer.user.name || viewer.user.email}
           </Text>
           <Text className="text-sm text-muted-foreground">{viewer.user.email}</Text>
-          <Text className="text-xs text-muted-foreground">
-            {ORGANIZATION_KIND_LABELS[organization.kind]} · {organization.name}
-          </Text>
+          <EntityLabel
+            entity={{ kind: organization.kind, id: organization.id, avatar: organization.avatar }}
+            name={`${ORGANIZATION_KIND_LABELS[organization.kind]} · ${organization.name}`}
+            textClassName="text-xs text-muted-foreground"
+          />
         </View>
       </Card>
 

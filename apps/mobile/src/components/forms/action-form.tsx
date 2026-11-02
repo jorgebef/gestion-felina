@@ -17,6 +17,7 @@ import type { MunicipalityValue } from "@felina/client/location";
 import { actionInputSchema, type ActionInput } from "@felina/schemas/action";
 
 import { MunicipalityPicker } from "@/components/felina/municipality-picker";
+import { EntityAvatar, type AvatarEntity } from "@/components/felina/entity-avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DateField, Select, SwitchRow } from "@/components/ui/controls";
@@ -64,7 +65,7 @@ function CheckList({
   disabled,
 }: {
   legend: string;
-  items: { id: string; label: string; hint?: string }[];
+  items: { id: string; label: string; hint?: string; avatar: AvatarEntity }[];
   selected: string[];
   onChange: (ids: string[]) => void;
   empty: string;
@@ -102,6 +103,7 @@ function CheckList({
                 >
                   {on ? <Icon icon={Check} color="primary-foreground" size={14} /> : null}
                 </View>
+                <EntityAvatar entity={item.avatar} name={item.label} />
                 <Text className="flex-1 text-base text-foreground">
                   {item.label}
                   {item.hint ? (
@@ -154,6 +156,7 @@ export function ActionForm({
           id: c.id,
           label: catDisplayName(c),
           hint: c.colonyId ? colonyNames.get(c.colonyId) : "sin colonia",
+          avatar: { kind: "cat" as const, id: c.id, version: c.updatedAt },
         })),
     [cats.data, colonyNames, values.colonyId],
   );
@@ -294,7 +297,11 @@ export function ActionForm({
       />
       <CheckList
         legend="Participantes"
-        items={(members.data ?? []).map((m) => ({ id: m.userId, label: m.name || m.email }))}
+        items={(members.data ?? []).map((m) => ({
+          id: m.userId,
+          label: m.name || m.email,
+          avatar: { kind: "user" as const, id: m.userId, avatar: m.avatar },
+        }))}
         selected={values.participantIds}
         disabled={submitting}
         onChange={(ids) => set("participantIds", ids)}

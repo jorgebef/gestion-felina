@@ -10,6 +10,7 @@ import { formatDate } from "@felina/client/format";
 import { invitationInputSchema } from "@felina/schemas/organization";
 
 import { Screen } from "@/components/app/screen";
+import { EntityAvatar } from "@/components/felina/entity-avatar";
 import { RowsSkeleton } from "@/components/app/skeletons";
 import { ErrorState, SectionTitle } from "@/components/app/states";
 import { Pill } from "@/components/ui/badge";
@@ -145,13 +146,20 @@ export default function Team() {
                       i > 0 && "border-t border-border",
                     )}
                   >
-                    <View className="flex-1">
-                      <Text numberOfLines={1} className="text-sm text-foreground">
-                        {inv.email}
-                      </Text>
-                      <Text className="text-xs text-muted-foreground">
-                        {MEMBER_ROLE_LABELS[inv.role]} · caduca el {formatDate(inv.expiresAt)}
-                      </Text>
+                    <View className="flex-1 flex-row items-center gap-2">
+                      {/* Not a member yet: no photo. */}
+                      <EntityAvatar
+                        entity={{ kind: "user", id: null, avatar: null }}
+                        name={inv.email}
+                      />
+                      <View className="flex-1">
+                        <Text numberOfLines={1} className="text-sm text-foreground">
+                          {inv.email}
+                        </Text>
+                        <Text className="text-xs text-muted-foreground">
+                          {MEMBER_ROLE_LABELS[inv.role]} · caduca el {formatDate(inv.expiresAt)}
+                        </Text>
+                      </View>
                     </View>
                     <Button
                       size="sm"
@@ -185,18 +193,27 @@ export default function Team() {
                   key={m.userId}
                   className={cn("gap-2 px-4 py-3", i > 0 && "border-t border-border")}
                 >
-                  <View className="flex-row items-center gap-2">
-                    <Text
-                      numberOfLines={1}
-                      className="shrink text-base font-medium text-foreground"
-                    >
-                      {m.name || m.email}
-                    </Text>
-                    {me ? <Pill tone="muted">Tú</Pill> : null}
+                  <View className="flex-row items-center gap-3">
+                    <EntityAvatar
+                      entity={{ kind: "user", id: m.userId, avatar: m.avatar }}
+                      name={m.name || m.email}
+                      size="md"
+                    />
+                    <View className="flex-1 gap-0.5">
+                      <View className="flex-row items-center gap-2">
+                        <Text
+                          numberOfLines={1}
+                          className="shrink text-base font-medium text-foreground"
+                        >
+                          {m.name || m.email}
+                        </Text>
+                        {me ? <Pill tone="muted">Tú</Pill> : null}
+                      </View>
+                      <Text numberOfLines={1} className="text-xs text-muted-foreground">
+                        {m.email} · desde {formatDate(m.joinedAt)}
+                      </Text>
+                    </View>
                   </View>
-                  <Text numberOfLines={1} className="text-xs text-muted-foreground">
-                    {m.email} · desde {formatDate(m.joinedAt)}
-                  </Text>
                   <View className="flex-row items-center gap-2">
                     {isAdmin ? (
                       <Select

@@ -38,6 +38,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { EntityAvatar } from "@/components/felina/EntityAvatar";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import type { Viewer } from "@/lib/api";
@@ -111,7 +112,8 @@ function NavLinks({ viewer, onNavigate }: { viewer: Viewer; onNavigate?: () => v
 function UserMenu({ viewer, compact = false }: { viewer: Viewer; compact?: boolean }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const initials = (viewer.user.name || viewer.user.email).slice(0, 1).toUpperCase();
+  const me = { kind: "user" as const, id: viewer.user.id, avatar: viewer.user.avatar };
+  const org = viewer.membership?.organization;
 
   const signOut = async () => {
     await authClient.signOut();
@@ -133,9 +135,7 @@ function UserMenu({ viewer, compact = false }: { viewer: Viewer; compact?: boole
           />
         }
       >
-        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-sm font-semibold text-brand">
-          {initials}
-        </span>
+        <EntityAvatar entity={me} name={viewer.user.name || viewer.user.email} size="md" />
         {!compact ? (
           <span className="min-w-0">
             <span className="block truncate text-sm font-medium">
@@ -151,16 +151,27 @@ function UserMenu({ viewer, compact = false }: { viewer: Viewer; compact?: boole
         {/* Base UI menu labels must live inside a group. */}
         <DropdownMenuGroup>
           <DropdownMenuLabel className="font-normal">
-            <span className="block truncate text-sm font-medium">
-              {viewer.user.name || "Mi cuenta"}
+            <span className="flex items-center gap-2">
+              <EntityAvatar entity={me} name={viewer.user.name || viewer.user.email} />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">
+                  {viewer.user.name || "Mi cuenta"}
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {viewer.user.email}
+                </span>
+              </span>
             </span>
-            <span className="block truncate text-xs text-muted-foreground">
-              {viewer.user.email}
-            </span>
-            {viewer.membership ? (
-              <span className="mt-1 block truncate text-xs text-muted-foreground">
-                {ORGANIZATION_KIND_LABELS[viewer.membership.organization.kind]} ·{" "}
-                {viewer.membership.organization.name}
+            {org ? (
+              <span className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <EntityAvatar
+                  entity={{ kind: org.kind, id: org.id, avatar: org.avatar }}
+                  name={org.name}
+                  size="xs"
+                />
+                <span className="truncate">
+                  {ORGANIZATION_KIND_LABELS[org.kind]} · {org.name}
+                </span>
               </span>
             ) : null}
           </DropdownMenuLabel>

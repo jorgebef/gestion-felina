@@ -6,6 +6,7 @@ import { APP_NAME } from "@/components/brand/Logo";
 import { EmptyState, PageHeader } from "@/components/app/states";
 import { RowsSkeleton } from "@/components/app/skeletons";
 import { ActionRow } from "@/components/felina/ActionRow";
+import { EntityAvatar } from "@/components/felina/EntityAvatar";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { formatInteger, pluralize } from "@/lib/format";
@@ -54,7 +55,16 @@ function Dashboard() {
     <>
       <PageHeader
         eyebrow={townHall ? `Ayuntamiento · ${org.municipalityName ?? ""}` : "Asociación"}
-        title={org.name}
+        title={
+          <span className="flex items-center gap-3">
+            <EntityAvatar
+              entity={{ kind: org.kind, id: org.id, avatar: org.avatar }}
+              name={org.name}
+              size="lg"
+            />
+            {org.name}
+          </span>
+        }
         actions={
           townHall ? (
             <Link to="/feed" className={buttonVariants()}>

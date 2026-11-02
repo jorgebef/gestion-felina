@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 
 import { Screen } from "@/components/app/screen";
+import { EntityAvatar } from "@/components/felina/entity-avatar";
 import { PageHeader } from "@/components/app/states";
 import { OrganizationStatusBadge } from "@/components/felina/badges";
 import { emptyOrganization, OrganizationForm } from "@/components/forms/organization-form";
@@ -66,6 +67,15 @@ export default function Onboarding() {
       {membership ? (
         <Card className="gap-4 p-5">
           <View className="flex-row flex-wrap items-center gap-3">
+            <EntityAvatar
+              entity={{
+                kind: membership.organization.kind,
+                id: membership.organization.id,
+                avatar: membership.organization.avatar,
+              }}
+              name={membership.organization.name}
+              size="md"
+            />
             <Icon
               icon={membership.organization.status === "pending" ? Clock : ShieldAlert}
               color={membership.organization.status === "pending" ? "warning" : "negative"}

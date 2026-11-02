@@ -86,6 +86,7 @@ export function getMyOrganization(ctx: OrgContext) {
         municipalityName: municipalities.name,
         createdAt: organizations.createdAt,
         reviewedAt: organizations.reviewedAt,
+        avatar: organizations.avatarKey,
       })
       .from(organizations)
       .leftJoin(municipalities, eq(municipalities.code, organizations.municipalityCode))
@@ -151,6 +152,7 @@ export function listMembers(ctx: OrgContext) {
         joinedAt: organizationMembers.createdAt,
         name: users.fullName,
         email: users.email,
+        avatar: users.avatarKey,
       })
       .from(organizationMembers)
       .innerJoin(users, eq(users.id, organizationMembers.userId))
@@ -327,8 +329,10 @@ export async function getInvitationPreview(token: string) {
       expiresAt: organizationInvitations.expiresAt,
       acceptedAt: organizationInvitations.acceptedAt,
       revokedAt: organizationInvitations.revokedAt,
+      organizationId: organizations.id,
       organizationName: organizations.name,
       organizationKind: organizations.kind,
+      organizationAvatar: organizations.avatarKey,
     })
     .from(organizationInvitations)
     .innerJoin(organizations, eq(organizations.id, organizationInvitations.organizationId))
@@ -344,8 +348,10 @@ export async function getInvitationPreview(token: string) {
   return {
     email: row.email,
     role: row.role,
+    organizationId: row.organizationId,
     organizationName: row.organizationName,
     organizationKind: row.organizationKind,
+    organizationAvatar: row.organizationAvatar,
     state,
   };
 }

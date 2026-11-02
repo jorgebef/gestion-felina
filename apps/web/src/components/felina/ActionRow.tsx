@@ -6,6 +6,7 @@ import type { ActionStatus, ActionType } from "@felina/domain/felina";
 import { formatShortDateTime } from "@/lib/format";
 
 import { ActionStatusBadge, ActionTypeBadge, UrgentBadge, ValidationBadge } from "./badges";
+import { EntityLabel } from "./EntityAvatar";
 
 export interface ActionSummary {
   id: string;
@@ -17,7 +18,9 @@ export interface ActionSummary {
   validatedAt: string | null;
   modifiedAfterValidation?: boolean;
   colonyName?: string | null;
+  organizationId?: string | null;
   organizationName?: string | null;
+  organizationAvatar?: string | null;
 }
 
 /** One action in a list: name, when, where and its badges. */
@@ -50,7 +53,17 @@ export function ActionRow({
           </span>
           {action.colonyName ? <span>· {action.colonyName}</span> : null}
           {showOrganization && action.organizationName ? (
-            <span>· {action.organizationName}</span>
+            <span className="inline-flex min-w-0 items-center gap-1">
+              ·{" "}
+              <EntityLabel
+                entity={{
+                  kind: "association",
+                  id: action.organizationId ?? null,
+                  avatar: action.organizationAvatar ?? null,
+                }}
+                name={action.organizationName}
+              />
+            </span>
           ) : null}
         </p>
         <div className="mt-1.5 flex flex-wrap gap-1.5">

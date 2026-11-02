@@ -302,6 +302,45 @@ describeDb("API", () => {
     expect((await ana.colonies.get(southId)).managers).toEqual([]);
   });
 
+  it("stores profile photos of people and organizations", async () => {
+    const anaCookie = await signUp("ana@example.test");
+    const ana = clientFor(anaCookie);
+    const lola = clientFor(await signUp("lola@example.test"));
+    const stranger = await signUp("extra@example.test");
+    const [anaId, lolaId] = await Promise.all(
+      [ana, lola].map(async (c) => (await c.me.get())!.user.id),
+    );
+    const orgId = await registerAssociationFor(anaId!, "Gatos con foto");
+    await addMember(lolaId!, orgId);
+    const png = () => new Blob([PNG], { type: "image/png" });
+
+    // A person's photo: only images, seen by their organization, not by strangers.
+    await expectApiError(ana.me.uploadAvatar(new Blob(["hola"])), "VALIDATION");
+    const { avatar } = await ana.me.uploadAvatar(png());
+    expect(avatar).toMatch(new RegExp(`^avatars/users/${anaId}/`));
+    expect((await ana.me.get())?.user.avatar).toBe(avatar);
+    expect((await lola.organizations.members()).find((m) => m.userId === anaId)?.avatar).toBe(
+      avatar,
+    );
+    const photoOf = (userId: string, cookie: string) =>
+      request(`/api/v1/users/${userId}/avatar`, { cookie });
+    expect((await photoOf(anaId!, anaCookie)).status).toBe(200);
+    expect((await photoOf(anaId!, stranger)).status).toBe(404);
+    await ana.me.removeAvatar();
+    expect((await ana.me.get())?.user.avatar).toBeNull();
+    expect((await photoOf(anaId!, anaCookie)).status).toBe(404);
+
+    // The organization's photo: its admins change it; anyone can see it.
+    await expectApiError(lola.organizations.uploadAvatar(png()), "FORBIDDEN");
+    const { avatar: logo } = await ana.organizations.uploadAvatar(png());
+    expect((await lola.me.get())?.membership?.organization.avatar).toBe(logo);
+    const publicLogo = await request(`/api/v1/public/organizations/${orgId}/avatar`);
+    expect(publicLogo.status).toBe(200);
+    expect(publicLogo.headers.get("content-type")).toBe("image/png");
+    await ana.organizations.removeAvatar();
+    expect((await request(`/api/v1/public/organizations/${orgId}/avatar`)).status).toBe(404);
+  });
+
   it("lets every signed-in user read and edit their own profile", async () => {
     expect((await request("/api/v1/me/profile")).status).toBe(401);
 

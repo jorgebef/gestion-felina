@@ -25,16 +25,20 @@ export function api(): Api {
 configureApi(api);
 
 /**
- * URL and headers to display a cat's photo (the endpoint requires the session). The
- * session headers are cached under the viewer's query key, so they refresh with it.
+ * Source (URL + session headers) for an image the API only serves to signed-in people:
+ * cat photos and profile photos. The session headers are cached under the viewer's query
+ * key, so they refresh with it.
  */
-export function useCatPhotoSource(catId: string, version?: string) {
+export function useAuthedImageSource(uri: string | undefined) {
   const headers = useQuery({
     queryKey: ["viewer", "session-headers"],
     queryFn: sessionHeaders,
     staleTime: Infinity,
   });
-  return headers.data
-    ? { uri: client.cats.photoUrl(catId, version), headers: headers.data }
-    : undefined;
+  return uri && headers.data ? { uri, headers: headers.data } : undefined;
+}
+
+/** URL and headers to display a cat's photo. */
+export function useCatPhotoSource(catId: string, version?: string) {
+  return useAuthedImageSource(client.cats.photoUrl(catId, version));
 }

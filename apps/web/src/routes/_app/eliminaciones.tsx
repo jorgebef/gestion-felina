@@ -12,6 +12,7 @@ import { APP_NAME } from "@/components/brand/Logo";
 import { EmptyState, ErrorState, PageHeader } from "@/components/app/states";
 import { CardsSkeleton } from "@/components/app/skeletons";
 import { DeletionStatusBadge } from "@/components/felina/badges";
+import { EntityAvatar, EntityLabel } from "@/components/felina/EntityAvatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -110,7 +111,12 @@ function TargetLink({ request }: { request: DeletionRequest }) {
   }
   if (request.catId) {
     return (
-      <Link to="/gatos/$catId" params={{ catId: request.catId }} className="hover:underline">
+      <Link
+        to="/gatos/$catId"
+        params={{ catId: request.catId }}
+        className="inline-flex items-center gap-2 hover:underline"
+      >
+        <EntityAvatar entity={{ kind: "cat", id: request.catId }} name={request.targetLabel} />
         {label}
       </Link>
     );
@@ -126,7 +132,15 @@ function TargetLink({ request }: { request: DeletionRequest }) {
       </Link>
     );
   }
-  return <span>{label}</span>;
+  // Deleted: a cat keeps its icon.
+  return request.targetType === "cat" ? (
+    <span className="inline-flex items-center gap-2">
+      <EntityAvatar entity={{ kind: "cat", id: null }} name={request.targetLabel} />
+      {label}
+    </span>
+  ) : (
+    <span>{label}</span>
+  );
 }
 
 function DeletionRequestCard({
@@ -165,10 +179,17 @@ function DeletionRequestCard({
           <p className="font-medium">
             <TargetLink request={request} />
           </p>
-          <p className="text-xs text-muted-foreground">
-            Pedida por{" "}
-            {request.mine ? "ti" : (request.requestedByName ?? "una persona que ya no está")} ·{" "}
-            {formatDateTime(request.createdAt)}
+          <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+            Pedida por
+            <EntityLabel
+              entity={{
+                kind: "user",
+                id: request.requestedById,
+                avatar: request.requestedByAvatar,
+              }}
+              name={request.mine ? "ti" : (request.requestedByName ?? "una persona que ya no está")}
+            />
+            · {formatDateTime(request.createdAt)}
           </p>
         </div>
         <DeletionStatusBadge status={request.status} />
@@ -177,10 +198,23 @@ function DeletionRequestCard({
         <p className="mt-3 rounded-lg bg-muted px-3 py-2 text-sm">«{request.reason}»</p>
       ) : null}
       {request.resolvedAt ? (
-        <p className="mt-3 text-sm text-muted-foreground">
+        <p className="mt-3 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
           {request.status === "approved" ? "Aprobada" : "Rechazada"}
-          {request.resolvedByName ? ` por ${request.resolvedByName}` : ""} el{" "}
-          {formatDateTime(request.resolvedAt)}
+          {request.resolvedByName ? (
+            <>
+              {" "}
+              por
+              <EntityLabel
+                entity={{
+                  kind: "user",
+                  id: request.resolvedBy,
+                  avatar: request.resolvedByAvatar,
+                }}
+                name={request.resolvedByName}
+              />
+            </>
+          ) : null}{" "}
+          el {formatDateTime(request.resolvedAt)}
           {request.resolutionNote ? `: «${request.resolutionNote}»` : "."}
         </p>
       ) : null}

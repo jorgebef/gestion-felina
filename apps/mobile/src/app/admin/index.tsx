@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, Stack } from "expo-router";
-import { Building2, Landmark, UserRound } from "lucide-react-native";
+import { Building2, UserRound } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -13,6 +13,7 @@ import {
 import { formatDate, pluralize } from "@felina/client/format";
 
 import { Screen } from "@/components/app/screen";
+import { EntityAvatar } from "@/components/felina/entity-avatar";
 import { RowsSkeleton } from "@/components/app/skeletons";
 import { EmptyState, ErrorState } from "@/components/app/states";
 import { searchBarOptions } from "@/components/app/tab-stack";
@@ -22,7 +23,6 @@ import { Pill } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/controls";
-import { Icon } from "@/components/ui/icon";
 import { adminOrganizationsQuery } from "@/lib/queries";
 import { useDebounced } from "@/lib/use-debounced";
 import { cn } from "@/lib/utils";
@@ -85,13 +85,11 @@ export default function AdminHome() {
                   i > 0 && "border-t border-border",
                 )}
               >
-                <View className="pt-0.5">
-                  <Icon
-                    icon={o.kind === "town_hall" ? Landmark : Building2}
-                    color="muted-foreground"
-                    size={20}
-                  />
-                </View>
+                <EntityAvatar
+                  entity={{ kind: o.kind, id: o.id, avatar: o.avatar }}
+                  name={o.name}
+                  size="md"
+                />
                 <View className="flex-1 gap-1">
                   <Text numberOfLines={1} className="text-base font-medium text-foreground">
                     {o.name}

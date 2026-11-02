@@ -24,7 +24,9 @@ const actionColumns = {
   isUrgent: actions.isUrgent,
   validatedAt: actions.validatedAt,
   colonyName: colonies.name,
+  organizationId: actions.organizationId,
   organizationName: organizations.name,
+  organizationAvatar: organizations.avatarKey,
 };
 
 export function getDashboard(ctx: OrgContext) {

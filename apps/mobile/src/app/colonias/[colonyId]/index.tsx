@@ -18,6 +18,7 @@ import {
   SectionTitle,
 } from "@/components/app/states";
 import { ActionRow } from "@/components/felina/action-row";
+import { EntityLabel } from "@/components/felina/entity-avatar";
 import { AuthorizationBadge } from "@/components/felina/badges";
 import { CatGrid } from "@/components/felina/cat-card";
 import { ColonyManagers } from "@/components/felina/colony-managers";
@@ -136,7 +137,21 @@ export default function ColonyDetail() {
       <Card className="gap-4 p-5">
         <Facts
           items={[
-            { label: "Asociación gestora", value: colony.organizationName ?? "—" },
+            {
+              label: "Asociación gestora",
+              value: colony.organizationName ? (
+                <EntityLabel
+                  entity={{
+                    kind: "association",
+                    id: colony.organizationId,
+                    avatar: colony.organizationAvatar,
+                  }}
+                  name={colony.organizationName}
+                />
+              ) : (
+                "—"
+              ),
+            },
             { label: "Municipio", value: colony.municipalityName },
             { label: "Dirección", value: colony.address ?? "—" },
             {

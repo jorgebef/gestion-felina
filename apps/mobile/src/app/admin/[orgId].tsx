@@ -16,6 +16,7 @@ import { formatDate, formatDateTime } from "@felina/client/format";
 import { invitationInputSchema } from "@felina/schemas/organization";
 
 import { Screen } from "@/components/app/screen";
+import { EntityAvatar, EntityLabel } from "@/components/felina/entity-avatar";
 import { RowsSkeleton } from "@/components/app/skeletons";
 import { ErrorState, Facts, LoadingState, PageHeader, SectionTitle } from "@/components/app/states";
 import { OrganizationStatusBadge } from "@/components/felina/badges";
@@ -98,6 +99,13 @@ export default function AdminOrganization() {
     <Screen onRefresh={query.refetch}>
       <Stack.Screen options={{ title: org.name }} />
       <PageHeader
+        avatar={
+          <EntityAvatar
+            entity={{ kind: org.kind, id: org.id, avatar: org.avatar }}
+            name={org.name}
+            size="lg"
+          />
+        }
         eyebrow={ORGANIZATION_KIND_LABELS[org.kind]}
         title={org.name}
         description={org.municipalityName ?? undefined}
@@ -153,14 +161,23 @@ export default function AdminOrganization() {
             {members.map((m, i) => (
               <View
                 key={m.userId}
-                className={cn("gap-0.5 px-4 py-3", i > 0 && "border-t border-border")}
+                className={cn(
+                  "flex-row items-center gap-3 px-4 py-3",
+                  i > 0 && "border-t border-border",
+                )}
               >
-                <Text numberOfLines={1} className="text-base font-medium text-foreground">
-                  {m.name || m.email}
-                </Text>
-                <Text numberOfLines={1} className="text-xs text-muted-foreground">
-                  {m.email} · {MEMBER_ROLE_LABELS[m.role]} · {formatDate(m.joinedAt)}
-                </Text>
+                <EntityAvatar
+                  entity={{ kind: "user", id: m.userId, avatar: m.avatar }}
+                  name={m.name || m.email}
+                />
+                <View className="flex-1 gap-0.5">
+                  <Text numberOfLines={1} className="text-base font-medium text-foreground">
+                    {m.name || m.email}
+                  </Text>
+                  <Text numberOfLines={1} className="text-xs text-muted-foreground">
+                    {m.email} · {MEMBER_ROLE_LABELS[m.role]} · {formatDate(m.joinedAt)}
+                  </Text>
+                </View>
               </View>
             ))}
           </Card>
@@ -173,9 +190,12 @@ export default function AdminOrganization() {
           <View className="gap-1">
             <Text className="text-sm font-medium text-foreground">Invitaciones abiertas</Text>
             {invitations.map((i) => (
-              <Text key={i.id} className="text-sm text-muted-foreground">
-                {i.email} · {MEMBER_ROLE_LABELS[i.role]} · caduca el {formatDate(i.expiresAt)}
-              </Text>
+              <EntityLabel
+                key={i.id}
+                entity={{ kind: "user", id: null, avatar: null }}
+                name={`${i.email} · ${MEMBER_ROLE_LABELS[i.role]} · caduca el ${formatDate(i.expiresAt)}`}
+                textClassName="text-sm text-muted-foreground"
+              />
             ))}
           </View>
         ) : null}

@@ -50,6 +50,8 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   isPlatformAdmin: boolean("is_platform_admin").notNull().default(false),
+  /** Profile photo in storage (packages/storage); null without one. */
+  avatarKey: text("avatar_key"),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
@@ -120,6 +122,8 @@ export const organizations = pgTable("organizations", {
   reviewedAt: ts("reviewed_at"),
   reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  /** Logo/profile photo in storage (packages/storage); null without one. */
+  avatarKey: text("avatar_key"),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });

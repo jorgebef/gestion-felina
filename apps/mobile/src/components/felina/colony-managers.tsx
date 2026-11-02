@@ -14,10 +14,13 @@ import { Select } from "@/components/ui/controls";
 import { api } from "@/lib/api";
 import { membersQuery } from "@/lib/queries";
 
+import { EntityAvatar } from "./entity-avatar";
+
 export interface ColonyManager {
   userId: string;
   name: string | null;
   email: string;
+  avatar: string | null;
 }
 
 const NOBODY = "none";
@@ -84,6 +87,10 @@ export function ColonyManagers({
               key={m.userId}
               className={`flex-row items-center justify-between gap-2 px-4 py-3 ${i ? "border-t border-border" : ""}`}
             >
+              <EntityAvatar
+                entity={{ kind: "user", id: m.userId, avatar: m.avatar }}
+                name={m.name || m.email}
+              />
               <View className="min-w-0 flex-1">
                 <Text className="font-medium text-foreground" numberOfLines={1}>
                   {m.name || m.email}

@@ -8,6 +8,7 @@ import { APP_NAME } from "@/components/brand/Logo";
 import { EmptyState, ErrorState, PageHeader } from "@/components/app/states";
 import { CardsSkeleton, MapSkeleton } from "@/components/app/skeletons";
 import { AuthorizationBadge, Pill } from "@/components/felina/badges";
+import { EntityLabel } from "@/components/felina/EntityAvatar";
 import { LocationMap } from "@/components/felina/LocationMap";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -178,8 +179,16 @@ function Colonies() {
                   {[c.address, c.municipalityName].filter(Boolean).join(" · ")}
                 </p>
                 {townHall && c.organizationName ? (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Gestiona: {c.organizationName}
+                  <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                    Gestiona:{" "}
+                    <EntityLabel
+                      entity={{
+                        kind: "association",
+                        id: c.organizationId,
+                        avatar: c.organizationAvatar,
+                      }}
+                      name={c.organizationName}
+                    />
                   </p>
                 ) : null}
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

@@ -18,6 +18,7 @@ import { api } from "@/lib/api";
 import { municipalityQuery } from "@/lib/queries";
 
 import { ProposalStatusBadge } from "./badges";
+import { EntityAvatar, EntityLabel } from "./entity-avatar";
 
 export type Proposal = ApiData<Api["proposals"]["list"]>[number];
 
@@ -90,19 +91,47 @@ function ProposalCard({ proposal, canResolve }: { proposal: Proposal; canResolve
     <Card className="gap-3 p-4">
       <View className="flex-row items-start justify-between gap-2">
         <View className="flex-1 gap-0.5">
-          {href ? (
-            <Link href={href} className="text-base font-medium text-foreground">
-              {label}
-            </Link>
-          ) : (
-            <Text className="text-base font-medium text-foreground">{label}</Text>
-          )}
-          <Text className="text-xs text-muted-foreground">
-            {proposal.incoming
-              ? `Propuesta de ${proposal.proposedByOrganizationName}`
-              : `Enviada a ${proposal.targetOrganizationName}`}{" "}
-            · {formatDateTime(proposal.createdAt)}
-          </Text>
+          <View className="flex-row items-center gap-2">
+            {proposal.targetType === "cat" ? (
+              <EntityAvatar entity={{ kind: "cat", id: proposal.catId }} name={label} />
+            ) : null}
+            {href ? (
+              <Link href={href} className="shrink text-base font-medium text-foreground">
+                {label}
+              </Link>
+            ) : (
+              <Text className="shrink text-base font-medium text-foreground">{label}</Text>
+            )}
+          </View>
+          <View className="flex-row flex-wrap items-center gap-1">
+            <Text className="text-xs text-muted-foreground">
+              {proposal.incoming ? "Propuesta de" : "Enviada a"}
+            </Text>
+            <EntityLabel
+              entity={
+                proposal.incoming
+                  ? {
+                      kind: "town_hall",
+                      id: proposal.proposedByOrganizationId,
+                      avatar: proposal.proposedByOrganizationAvatar,
+                    }
+                  : {
+                      kind: "association",
+                      id: proposal.targetOrganizationId,
+                      avatar: proposal.targetOrganizationAvatar,
+                    }
+              }
+              name={
+                (proposal.incoming
+                  ? proposal.proposedByOrganizationName
+                  : proposal.targetOrganizationName) ?? ""
+              }
+              textClassName="text-xs text-muted-foreground"
+            />
+            <Text className="text-xs text-muted-foreground">
+              · {formatDateTime(proposal.createdAt)}
+            </Text>
+          </View>
         </View>
         <ProposalStatusBadge status={proposal.status} />
       </View>

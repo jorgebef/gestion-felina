@@ -17,6 +17,7 @@ import { APP_NAME } from "@/components/brand/Logo";
 import { Facts, PageHeader } from "@/components/app/states";
 import { RowsSkeleton } from "@/components/app/skeletons";
 import { OrganizationStatusBadge } from "@/components/felina/badges";
+import { EntityAvatar } from "@/components/felina/EntityAvatar";
 import { InvitationLink } from "@/components/felina/InvitationLink";
 import { Field, FormError } from "@/components/forms/Field";
 import { Button } from "@/components/ui/button";
@@ -111,7 +112,16 @@ function AdminOrganization() {
       </Link>
       <PageHeader
         eyebrow={ORGANIZATION_KIND_LABELS[org.kind]}
-        title={org.name}
+        title={
+          <span className="flex items-center gap-3">
+            <EntityAvatar
+              entity={{ kind: org.kind, id: org.id, avatar: org.avatar }}
+              name={org.name}
+              size="lg"
+            />
+            {org.name}
+          </span>
+        }
         description={org.municipalityName ?? undefined}
         actions={<OrganizationStatusBadge status={org.status} />}
       />
@@ -148,10 +158,16 @@ function AdminOrganization() {
                     key={m.userId}
                     className="flex items-center justify-between gap-3 px-5 py-2.5"
                   >
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium">{m.name || m.email}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {m.email}
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <EntityAvatar
+                        entity={{ kind: "user", id: m.userId, avatar: m.avatar }}
+                        name={m.name || m.email}
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{m.name || m.email}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {m.email}
+                        </span>
                       </span>
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -171,9 +187,16 @@ function AdminOrganization() {
                 <ul className="mt-2 space-y-3 text-sm text-muted-foreground">
                   {data.invitations.map((i) => (
                     <li key={i.id} className="space-y-1.5">
-                      <p>
-                        {i.email} · {MEMBER_ROLE_LABELS[i.role]} · caduca el{" "}
-                        {formatDate(i.expiresAt)}
+                      <p className="flex items-center gap-2">
+                        <EntityAvatar
+                          entity={{ kind: "user", id: null, avatar: null }}
+                          name={i.email}
+                          size="xs"
+                        />
+                        <span>
+                          {i.email} · {MEMBER_ROLE_LABELS[i.role]} · caduca el{" "}
+                          {formatDate(i.expiresAt)}
+                        </span>
                       </p>
                       <InvitationLink url={i.url} />
                     </li>

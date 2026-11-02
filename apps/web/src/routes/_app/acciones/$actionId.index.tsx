@@ -21,6 +21,7 @@ import {
   ValidationBadge,
 } from "@/components/felina/badges";
 import { CatPhoto } from "@/components/felina/CatPhoto";
+import { EntityAvatar, EntityLabel } from "@/components/felina/EntityAvatar";
 import { DeleteOrRequestButton, PendingDeletionNotice } from "@/components/felina/Deletion";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -177,7 +178,21 @@ function ActionDetail() {
           <section className="surface p-5">
             <Facts
               items={[
-                { label: "Asociación", value: action.organizationName ?? "—" },
+                {
+                  label: "Asociación",
+                  value: action.organizationName ? (
+                    <EntityLabel
+                      entity={{
+                        kind: "association",
+                        id: action.organizationId,
+                        avatar: action.organizationAvatar,
+                      }}
+                      name={action.organizationName}
+                    />
+                  ) : (
+                    "—"
+                  ),
+                },
                 {
                   label: "Colonia",
                   value: action.colonyId ? (
@@ -256,9 +271,17 @@ function ActionDetail() {
           ) : data.participants.length ? (
             <ul className="mt-3 space-y-2 text-sm">
               {data.participants.map((p) => (
-                <li key={p.userId}>
-                  <p className="font-medium">{p.name || p.email}</p>
-                  {p.name ? <p className="text-xs text-muted-foreground">{p.email}</p> : null}
+                <li key={p.userId} className="flex items-center gap-2.5">
+                  <EntityAvatar
+                    entity={{ kind: "user", id: p.userId, avatar: p.avatar }}
+                    name={p.name || p.email || "Participante"}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{p.name || p.email}</p>
+                    {p.name ? (
+                      <p className="truncate text-xs text-muted-foreground">{p.email}</p>
+                    ) : null}
+                  </div>
                 </li>
               ))}
             </ul>

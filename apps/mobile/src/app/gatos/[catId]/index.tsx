@@ -12,6 +12,7 @@ import { Screen } from "@/components/app/screen";
 import { CardsSkeleton, RowsSkeleton } from "@/components/app/skeletons";
 import { ErrorState, Facts, LoadingState, PageHeader, SectionTitle } from "@/components/app/states";
 import { ActionRow } from "@/components/felina/action-row";
+import { EntityLabel } from "@/components/felina/entity-avatar";
 import { sexLabel, SterilizedBadge } from "@/components/felina/badges";
 import { CatPhoto } from "@/components/felina/cat-photo";
 import { DeleteOrRequestButton, PendingDeletionNotice } from "@/components/felina/deletion";
@@ -130,7 +131,21 @@ export default function CatDetail() {
                 "Sin colonia"
               ),
             },
-            { label: "Asociación", value: cat.organizationName ?? "—" },
+            {
+              label: "Asociación",
+              value: cat.organizationName ? (
+                <EntityLabel
+                  entity={{
+                    kind: "association",
+                    id: cat.organizationId,
+                    avatar: cat.organizationAvatar,
+                  }}
+                  name={cat.organizationName}
+                />
+              ) : (
+                "—"
+              ),
+            },
             { label: "Municipio", value: cat.municipalityName },
             { label: "Dirección", value: cat.address ?? "—" },
             {

@@ -103,6 +103,27 @@ export function createApi(options: ApiOptions) {
   const base = `${options.baseUrl.replace(/\/$/, "")}/api/v1`;
   const doFetch = options.fetch ?? fetch;
 
+  /**
+   * POSTs a photo as multipart/form-data. Browsers pass a `Blob`/`File`; React Native
+   * passes the picked image's `{ uri, name, type }`.
+   */
+  const uploadFile = async <T>(path: string, file: Blob | NativeFile): Promise<T> => {
+    const form = new FormData();
+    form.append("file", file as Blob);
+    const headers = (await options.headers?.()) ?? {};
+    return unwrap(
+      doFetch(`${base}${path}`, {
+        method: "POST",
+        body: form,
+        headers,
+        credentials: "include",
+      }) as unknown as Promise<ClientResponse<T>>,
+    );
+  };
+  /** `?v=` busts the browser cache when the photo changes. */
+  const versioned = (url: string, version?: string | null) =>
+    version ? `${url}?v=${encodeURIComponent(version)}` : url;
+
   return {
     public: {
       authConfig: () => unwrap(c.public["auth-config"].$get()),
@@ -114,6 +135,13 @@ export function createApi(options: ApiOptions) {
       get: () => unwrap(c.me.$get()),
       profile: () => unwrap(c.me.profile.$get()),
       update: (json: Body<RawClient["me"]["$patch"]>) => unwrap(c.me.$patch({ json })),
+      uploadAvatar: (file: Blob | NativeFile) => uploadFile<{ avatar: string }>("/me/avatar", file),
+      removeAvatar: () => unwrap(c.me.avatar.$delete()),
+    },
+    users: {
+      /** A person's profile photo; `version` is their `avatar` (null: they have none). */
+      avatarUrl: (id: string, version?: string | null) =>
+        versioned(`${base}/users/${id}/avatar`, version),
     },
     organizations: {
       register: (json: Body<RawClient["organizations"]["$post"]>) =>
@@ -129,6 +157,12 @@ export function createApi(options: ApiOptions) {
       invitations: () => unwrap(c.organizations.current.invitations.$get()),
       invite: (json: Body<RawClient["organizations"]["current"]["invitations"]["$post"]>) =>
         unwrap(c.organizations.current.invitations.$post({ json })),
+      uploadAvatar: (file: Blob | NativeFile) =>
+        uploadFile<{ avatar: string | null }>("/organizations/current/avatar", file),
+      removeAvatar: () => unwrap(c.organizations.current.avatar.$delete()),
+      /** An organization's photo (public); `version` is its `avatar`. */
+      avatarUrl: (id: string, version?: string | null) =>
+        versioned(`${base}/public/organizations/${id}/avatar`, version),
     },
     invitations: {
       accept: (token: string) => unwrap(c.invitations[":token"].accept.$post({ param: { token } })),
@@ -165,25 +199,10 @@ export function createApi(options: ApiOptions) {
       propose: (id: string, json: Body<RawClient["cats"][":id"]["proposals"]["$post"]>) =>
         unwrap(c.cats[":id"].proposals.$post({ param: { id }, json })),
       /** URL of the main photo; `version` (e.g. updatedAt) busts the browser cache. */
-      photoUrl: (id: string, version?: string) =>
-        `${base}/cats/${id}/photo${version ? `?v=${encodeURIComponent(version)}` : ""}`,
-      /**
-       * Uploads a photo and returns the `photoKey` to send with the cat. Browsers pass a
-       * `Blob`/`File`; React Native passes the picked image's `{ uri, name, type }`.
-       */
-      uploadPhoto: async (file: Blob | NativeFile): Promise<{ photoKey: string }> => {
-        const form = new FormData();
-        form.append("file", file as Blob);
-        const headers = (await options.headers?.()) ?? {};
-        return unwrap(
-          doFetch(`${base}/uploads/photos`, {
-            method: "POST",
-            body: form,
-            headers,
-            credentials: "include",
-          }) as unknown as Promise<ClientResponse<{ photoKey: string }>>,
-        );
-      },
+      photoUrl: (id: string, version?: string) => versioned(`${base}/cats/${id}/photo`, version),
+      /** Uploads a photo and returns the `photoKey` to send with the cat. */
+      uploadPhoto: (file: Blob | NativeFile) =>
+        uploadFile<{ photoKey: string }>("/uploads/photos", file),
     },
     actions: {
       list: (query: Partial<ActionListQuery> = {}) =>

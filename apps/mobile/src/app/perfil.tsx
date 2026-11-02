@@ -14,8 +14,10 @@ import { MEMBER_ROLE_LABELS, ORGANIZATION_KIND_LABELS } from "@felina/domain/fel
 import { userProfileSchema } from "@felina/schemas/organization";
 
 import { Screen } from "@/components/app/screen";
+import { EntityLabel } from "@/components/felina/entity-avatar";
 import { RowsSkeleton } from "@/components/app/skeletons";
 import { ErrorState, Facts, LoadingState, SectionTitle } from "@/components/app/states";
+import { AvatarUpload } from "@/components/felina/avatar-upload";
 import { OrganizationStatusBadge } from "@/components/felina/badges";
 import { Pill } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,6 +72,17 @@ export default function Profile() {
       <Text className="text-sm text-muted-foreground">
         Tus datos personales, tu contraseña y los dispositivos con sesión abierta.
       </Text>
+      <Section
+        title="Foto de perfil"
+        description="Aparece junto a tu nombre en tu organización: equipo, acciones, gestores…"
+      >
+        <AvatarUpload
+          entity={{ kind: "user", id: viewer.user.id, avatar: viewer.user.avatar }}
+          name={viewer.user.name || viewer.user.email}
+          upload={(file) => api().me.uploadAvatar(file)}
+          remove={() => api().me.removeAvatar()}
+        />
+      </Section>
       <Section
         title="Datos personales"
         description="Tu nombre es visible para el resto de tu organización."
@@ -451,7 +464,15 @@ function MembershipSection({ viewer, joinedAt }: { viewer: Viewer; joinedAt: str
     <View className="gap-5">
       <Facts
         items={[
-          { label: ORGANIZATION_KIND_LABELS[org.kind], value: org.name },
+          {
+            label: ORGANIZATION_KIND_LABELS[org.kind],
+            value: (
+              <EntityLabel
+                entity={{ kind: org.kind, id: org.id, avatar: org.avatar }}
+                name={org.name}
+              />
+            ),
+          },
           { label: "Tu rol", value: MEMBER_ROLE_LABELS[membership.role] },
           { label: "Estado", value: <OrganizationStatusBadge status={org.status} /> },
           { label: "Miembro desde", value: formatDate(joinedAt) },

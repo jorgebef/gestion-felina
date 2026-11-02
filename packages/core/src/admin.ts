@@ -44,6 +44,7 @@ export function listOrganizations(ctx: UserContext, query: OrganizationListQuery
         contactEmail: organizations.contactEmail,
         createdAt: organizations.createdAt,
         reviewedAt: organizations.reviewedAt,
+        avatar: organizations.avatarKey,
         members: sql<number>`(select count(*) from ${organizationMembers}
           where ${organizationMembers.organizationId} = ${organizations.id})`.mapWith(Number),
         openInvitations: sql<number>`(select count(*) from ${organizationInvitations}
@@ -86,6 +87,7 @@ export function getOrganizationDetail(ctx: UserContext, id: string) {
         municipalityCode: organizations.municipalityCode,
         municipalityName: municipalities.name,
         createdAt: organizations.createdAt,
+        avatar: organizations.avatarKey,
       })
       .from(organizations)
       .leftJoin(municipalities, eq(municipalities.code, organizations.municipalityCode))
@@ -97,6 +99,7 @@ export function getOrganizationDetail(ctx: UserContext, id: string) {
         role: organizationMembers.role,
         name: users.fullName,
         email: users.email,
+        avatar: users.avatarKey,
         joinedAt: organizationMembers.createdAt,
       })
       .from(organizationMembers)

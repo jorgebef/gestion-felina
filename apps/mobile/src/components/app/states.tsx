@@ -15,24 +15,32 @@ export function PageHeader({
   description,
   eyebrow,
   actions,
+  avatar,
 }: {
   title?: ReactNode;
   description?: ReactNode;
   eyebrow?: ReactNode;
   actions?: ReactNode;
+  /** Thumbnail shown before the title (an organization's photo…). */
+  avatar?: ReactNode;
 }) {
   return (
     <View className="gap-3">
-      <View className="gap-1">
-        {eyebrow ? (
-          <Text className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-            {eyebrow}
-          </Text>
-        ) : null}
-        {title ? (
-          <Text className="text-2xl font-semibold tracking-tight text-foreground">{title}</Text>
-        ) : null}
-        {description ? <Text className="text-sm text-muted-foreground">{description}</Text> : null}
+      <View className="flex-row items-center gap-3">
+        {avatar}
+        <View className="flex-1 gap-1">
+          {eyebrow ? (
+            <Text className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+              {eyebrow}
+            </Text>
+          ) : null}
+          {title ? (
+            <Text className="text-2xl font-semibold tracking-tight text-foreground">{title}</Text>
+          ) : null}
+          {description ? (
+            <Text className="text-sm text-muted-foreground">{description}</Text>
+          ) : null}
+        </View>
       </View>
       {actions ? <View className="flex-row flex-wrap gap-2">{actions}</View> : null}
     </View>

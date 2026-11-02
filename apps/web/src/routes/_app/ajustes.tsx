@@ -7,7 +7,9 @@ import { ORGANIZATION_KIND_LABELS } from "@felina/domain/felina";
 import { APP_NAME } from "@/components/brand/Logo";
 import { SettingsSection } from "@/components/app/SettingsSection";
 import { Facts, PageHeader } from "@/components/app/states";
+import { AvatarUpload } from "@/components/felina/AvatarUpload";
 import { OrganizationStatusBadge } from "@/components/felina/badges";
+import { EntityAvatar } from "@/components/felina/EntityAvatar";
 import { OrganizationForm } from "@/components/forms/OrganizationForm";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
@@ -44,6 +46,30 @@ function Settings() {
         }
       />
       <div className="space-y-6">
+        <SettingsSection
+          title="Foto de perfil"
+          description={
+            canManage
+              ? "El logo o la imagen de tu organización. Aparece junto a su nombre en toda la plataforma."
+              : "Solo los administradores pueden cambiarla."
+          }
+        >
+          {canManage ? (
+            <AvatarUpload
+              entity={{ kind: org.kind, id: org.id, avatar: org.avatar }}
+              name={org.name}
+              upload={(file) => api().organizations.uploadAvatar(file)}
+              remove={() => api().organizations.removeAvatar()}
+            />
+          ) : (
+            <EntityAvatar
+              entity={{ kind: org.kind, id: org.id, avatar: org.avatar }}
+              name={org.name}
+              size="xl"
+            />
+          )}
+        </SettingsSection>
+
         <SettingsSection
           title={ORGANIZATION_KIND_LABELS[org.kind]}
           description={

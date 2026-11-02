@@ -16,6 +16,7 @@ import { actionInputSchema, type ActionInput } from "@felina/schemas/action";
 import { MunicipalityPicker, type MunicipalityValue } from "@/components/felina/MunicipalityPicker";
 import { Field, FormError } from "@/components/forms/Field";
 import { Button } from "@/components/ui/button";
+import { EntityAvatar, type AvatarEntity } from "@/components/felina/EntityAvatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,7 +69,7 @@ function CheckList({
   empty,
 }: {
   legend: string;
-  items: { id: string; label: string; hint?: string }[];
+  items: { id: string; label: string; hint?: string; avatar: AvatarEntity }[];
   selected: string[];
   onChange: (ids: string[]) => void;
   empty: string;
@@ -90,6 +91,7 @@ function CheckList({
                 onCheckedChange={(v) => toggle(item.id, v === true)}
               />
               <Label htmlFor={`${legend}-${item.id}`} className="flex-1 font-normal">
+                <EntityAvatar entity={item.avatar} name={item.label} size="xs" />
                 {item.label}
                 {item.hint ? (
                   <span className="ml-1 text-xs text-muted-foreground">{item.hint}</span>
@@ -141,6 +143,7 @@ export function ActionForm({
           id: c.id,
           label: catDisplayName(c),
           hint: c.colonyId ? colonyNames.get(c.colonyId) : "sin colonia",
+          avatar: { kind: "cat" as const, id: c.id, version: c.updatedAt },
         })),
     [cats.data, colonyNames, values.colonyId],
   );
@@ -322,7 +325,11 @@ export function ActionForm({
           />
           <CheckList
             legend="Participantes"
-            items={(members.data ?? []).map((m) => ({ id: m.userId, label: m.name || m.email }))}
+            items={(members.data ?? []).map((m) => ({
+              id: m.userId,
+              label: m.name || m.email,
+              avatar: { kind: "user" as const, id: m.userId, avatar: m.avatar },
+            }))}
             selected={values.participantIds}
             onChange={(ids) => set("participantIds", ids)}
             empty="Cargando el equipo…"

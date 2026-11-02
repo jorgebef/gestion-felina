@@ -1,6 +1,4 @@
 /** Cats: registered by association members; visible to the town hall of their municipality. */
-import { randomUUID } from "node:crypto";
-
 import { and, asc, desc, eq, ilike, isNull, or, sql, type SQL } from "drizzle-orm";
 
 import {
@@ -14,13 +12,7 @@ import {
   type TenantTx,
 } from "@felina/db";
 import { getStorage } from "@felina/storage";
-import {
-  MAX_PHOTO_BYTES,
-  PHOTO_TYPES,
-  type CatInput,
-  type CatListQuery,
-  type PhotoType,
-} from "@felina/schemas/cat";
+import type { CatInput, CatListQuery } from "@felina/schemas/cat";
 
 import {
   assertAssociation,
@@ -30,6 +22,7 @@ import {
   mapDbError,
   type OrgContext,
 } from "./context.ts";
+import { deleteImageQuietly, storeImage } from "./images.ts";
 import {
   assertCanDelete,
   canManageColony,
@@ -85,6 +78,7 @@ export function getCat(ctx: OrgContext, id: string) {
         id: cats.id,
         organizationId: cats.organizationId,
         organizationName: organizations.name,
+        organizationAvatar: organizations.avatarKey,
         colonyId: cats.colonyId,
         colonyName: colonies.name,
         name: cats.name,
@@ -270,36 +264,14 @@ export function listColonyOptions(ctx: OrgContext) {
 
 /* --------------------------------- Photos --------------------------------- */
 
-function sniffImageType(bytes: Uint8Array): PhotoType | null {
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
-    return "image/png";
-  }
-  const header = new TextDecoder().decode(bytes.slice(0, 12));
-  if (header.startsWith("RIFF") && header.slice(8, 12) === "WEBP") return "image/webp";
-  return null;
-}
-
 /**
  * Stores a photo for a cat that is about to be created or edited. The type is taken
  * from the file's bytes, not from what the browser claims.
  */
 export async function uploadCatPhoto(ctx: OrgContext, bytes: Uint8Array) {
   assertAssociation(ctx);
-  if (bytes.byteLength === 0) throw new DomainError("VALIDATION", "El archivo está vacío");
-  if (bytes.byteLength > MAX_PHOTO_BYTES) {
-    throw new DomainError("VALIDATION", "La foto no puede superar los 8 MB");
-  }
-  const type = sniffImageType(bytes);
-  if (!type) throw new DomainError("VALIDATION", "La foto debe ser JPG, PNG o WebP");
-  const key = `cats/${ctx.membership.organization.id}/${randomUUID()}.${PHOTO_TYPES[type]}`;
-  await getStorage().put({
-    key,
-    body: bytes,
-    contentType: type,
-    metadata: { uploadedBy: ctx.user.id },
-  });
-  return { photoKey: key };
+  const photoKey = await storeImage(bytes, `cats/${ctx.membership.organization.id}`, ctx.user.id);
+  return { photoKey };
 }
 
 /** The photo of a cat the caller can see (RLS decides), or null. */
@@ -311,10 +283,4 @@ export async function getCatPhoto(ctx: OrgContext, id: string) {
   return getStorage().get(row.photoKey);
 }
 
-export async function deletePhotoQuietly(key: string): Promise<void> {
-  try {
-    await getStorage().delete(key);
-  } catch (error) {
-    console.error(`[storage] could not delete ${key}`, error);
-  }
-}
+export const deletePhotoQuietly = deleteImageQuietly;

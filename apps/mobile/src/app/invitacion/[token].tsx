@@ -7,6 +7,7 @@ import { MEMBER_ROLE_LABELS, ORGANIZATION_KIND_LABELS } from "@felina/domain/fel
 import { errorMessage } from "@felina/client/errors";
 
 import { Screen } from "@/components/app/screen";
+import { EntityAvatar } from "@/components/felina/entity-avatar";
 import { ErrorState, LoadingState } from "@/components/app/states";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -51,7 +52,18 @@ export default function Invitation() {
   return (
     <Screen>
       <Card className="gap-3 p-5">
-        <Icon icon={MailOpen} color="brand" size={24} />
+        <View className="flex-row items-center gap-3">
+          <EntityAvatar
+            entity={{
+              kind: invitation.organizationKind,
+              id: invitation.organizationId,
+              avatar: invitation.organizationAvatar,
+            }}
+            name={invitation.organizationName}
+            size="lg"
+          />
+          <Icon icon={MailOpen} color="brand" size={22} />
+        </View>
         <Text className="text-xl font-semibold tracking-tight text-foreground">
           Invitación a {invitation.organizationName}
         </Text>

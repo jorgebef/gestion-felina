@@ -67,6 +67,7 @@ export async function pendingDeletionFor(
       requestedBy: deletionRequests.requestedBy,
       requestedByName: users.fullName,
       requestedByEmail: users.email,
+      requestedByAvatar: users.avatarKey,
     })
     .from(deletionRequests)
     .leftJoin(users, eq(users.id, deletionRequests.requestedBy))
@@ -75,6 +76,7 @@ export async function pendingDeletionFor(
   const { requestedBy, requestedByName, requestedByEmail, ...rest } = row;
   return {
     ...rest,
+    requestedById: requestedBy,
     requestedByName: requestedByName || requestedByEmail || null,
     requestedByMe: requestedBy === ctx.user.id,
   };

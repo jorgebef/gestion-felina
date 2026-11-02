@@ -24,6 +24,7 @@ import {
   municipalityRoutes,
   organizationRoutes,
   publicRoutes,
+  userRoutes,
 } from "./routes/account.ts";
 import { actionRoutes, dashboardRoutes } from "./routes/actions.ts";
 import { adminRoutes } from "./routes/admin.ts";
@@ -39,6 +40,7 @@ import {
 export const v1Routes = new Hono()
   .route("/public", publicRoutes)
   .route("/me", meRoutes)
+  .route("/users", userRoutes)
   .route("/organizations", organizationRoutes)
   .route("/invitations", invitationRoutes)
   .route("/municipalities", municipalityRoutes)
@@ -86,10 +88,20 @@ export function createApp(options: { log?: boolean } = {}) {
   const photoLimit = bodyLimit({ maxSize: MAX_PHOTO_BYTES + 64 * 1024 });
   const defaultLimit = bodyLimit({ maxSize: 1024 * 1024 });
   app.use("/api/*", (c, next) =>
-    c.req.path === "/api/v1/uploads/photos" ? photoLimit(c, next) : defaultLimit(c, next),
+    isPhotoUpload(c.req.method, c.req.path) ? photoLimit(c, next) : defaultLimit(c, next),
   );
 
   app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
   app.route("/api/v1", v1Routes);
   return app;
+}
+
+/** Requests that carry a photo get the photo size limit instead of 1 MB. */
+function isPhotoUpload(method: string, path: string): boolean {
+  return (
+    method === "POST" &&
+    (path === "/api/v1/uploads/photos" ||
+      path === "/api/v1/me/avatar" ||
+      path === "/api/v1/organizations/current/avatar")
+  );
 }

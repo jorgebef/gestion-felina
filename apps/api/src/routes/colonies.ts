@@ -28,7 +28,6 @@ import {
   resolveDeletion,
   withdrawDeletion,
 } from "@felina/core/deletions";
-import { DomainError } from "@felina/core/context";
 import {
   listProposals,
   proposeCatChange,
@@ -36,7 +35,7 @@ import {
   resolveProposal,
   withdrawProposal,
 } from "@felina/core/proposals";
-import { catInputSchema, catListSchema, MAX_PHOTO_BYTES } from "@felina/schemas/cat";
+import { catInputSchema, catListSchema } from "@felina/schemas/cat";
 import { authorizationSchema, colonyInputSchema, colonyListSchema } from "@felina/schemas/colony";
 import { idParamSchema } from "@felina/schemas/common";
 import {
@@ -53,6 +52,7 @@ import {
 } from "@felina/schemas/proposal";
 import { z } from "zod";
 
+import { imageResponse, uploadedImage } from "../images.ts";
 import { onInvalid, requireOrg } from "../middleware.ts";
 
 const id = zValidator("param", idParamSchema, onInvalid);
@@ -115,15 +115,9 @@ export const catRoutes = new Hono()
   )
   .delete("/:id", id, async (c) => c.json(await deleteCat(c.var.ctx, c.req.valid("param").id)))
   /** Main photo; only for people who can see the cat. */
-  .get("/:id/photo", id, async (c) => {
-    const photo = await getCatPhoto(c.var.ctx, c.req.valid("param").id);
-    if (!photo) throw new DomainError("NOT_FOUND", "Foto no disponible");
-    return c.body(photo.body as Uint8Array<ArrayBuffer>, 200, {
-      "content-type": photo.contentType,
-      "cache-control": "private, max-age=86400",
-      "x-content-type-options": "nosniff",
-    });
-  })
+  .get("/:id/photo", id, async (c) =>
+    imageResponse(c, await getCatPhoto(c.var.ctx, c.req.valid("param").id)),
+  )
   .post("/:id/proposals", id, zValidator("json", catProposalSchema, onInvalid), async (c) =>
     c.json(await proposeCatChange(c.var.ctx, c.req.valid("param").id, c.req.valid("json")), 201),
   );
@@ -131,15 +125,9 @@ export const catRoutes = new Hono()
 export const uploadRoutes = new Hono()
   .use(requireOrg)
   /** multipart/form-data with a `file` field; returns the `photoKey` for the cat form. */
-  .post("/photos", async (c) => {
-    const body = await c.req.parseBody();
-    const file = body.file;
-    if (!(file instanceof File)) throw new DomainError("VALIDATION", "Adjunta una foto");
-    if (file.size > MAX_PHOTO_BYTES) {
-      throw new DomainError("VALIDATION", "La foto no puede superar los 8 MB");
-    }
-    return c.json(await uploadCatPhoto(c.var.ctx, new Uint8Array(await file.arrayBuffer())), 201);
-  });
+  .post("/photos", async (c) =>
+    c.json(await uploadCatPhoto(c.var.ctx, await uploadedImage(c)), 201),
+  );
 
 export const proposalRoutes = new Hono()
   .use(requireOrg)

@@ -180,8 +180,11 @@ export function listDeletionRequests(ctx: OrgContext, query: DeletionListQuery) 
         requestedBy: deletionRequests.requestedBy,
         requestedByName: requester.fullName,
         requestedByEmail: requester.email,
+        requestedByAvatar: requester.avatarKey,
+        resolvedBy: deletionRequests.resolvedBy,
         resolvedByName: resolver.fullName,
         resolvedByEmail: resolver.email,
+        resolvedByAvatar: resolver.avatarKey,
       })
       .from(deletionRequests)
       .leftJoin(requester, eq(requester.id, deletionRequests.requestedBy))
@@ -200,6 +203,7 @@ export function listDeletionRequests(ctx: OrgContext, query: DeletionListQuery) 
         ...r
       }) => ({
         ...r,
+        requestedById: requestedBy,
         targetId: r.colonyId ?? r.catId ?? r.actionId,
         requestedByName: requestedByName || requestedByEmail || null,
         resolvedByName: resolvedByName || resolvedByEmail || null,

@@ -13,6 +13,7 @@ import { Pressable, Text, View } from "react-native";
 import { formatInteger, pluralize } from "@felina/client/format";
 
 import { Screen } from "@/components/app/screen";
+import { EntityAvatar } from "@/components/felina/entity-avatar";
 import { RowsSkeleton } from "@/components/app/skeletons";
 import { EmptyState, ErrorState, PageHeader, SectionTitle } from "@/components/app/states";
 import { ActionRow } from "@/components/felina/action-row";
@@ -78,6 +79,13 @@ export default function Dashboard() {
         }}
       />
       <PageHeader
+        avatar={
+          <EntityAvatar
+            entity={{ kind: organization.kind, id: organization.id, avatar: organization.avatar }}
+            name={organization.name}
+            size="lg"
+          />
+        }
         eyebrow={
           isTownHall ? `Ayuntamiento · ${organization.municipalityName ?? ""}` : "Asociación"
         }

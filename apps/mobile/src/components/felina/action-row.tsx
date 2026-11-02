@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
 import { ActionStatusBadge, ActionTypeBadge, UrgentBadge, ValidationBadge } from "./badges";
+import { EntityLabel } from "./entity-avatar";
 
 export interface ActionSummary {
   id: string;
@@ -21,7 +22,9 @@ export interface ActionSummary {
   validatedAt: string | null;
   modifiedAfterValidation?: boolean;
   colonyName?: string | null;
+  organizationId?: string | null;
   organizationName?: string | null;
+  organizationAvatar?: string | null;
 }
 
 /** One action in a list: name, when, where and its badges. Tapping it opens the action. */
@@ -49,9 +52,19 @@ export function ActionRow({
             <Text className="text-sm text-muted-foreground">
               {formatShortDateTime(action.scheduledAt)}
               {action.colonyName ? ` · ${action.colonyName}` : ""}
-              {showOrganization && action.organizationName ? ` · ${action.organizationName}` : ""}
             </Text>
           </View>
+          {showOrganization && action.organizationName ? (
+            <EntityLabel
+              entity={{
+                kind: "association",
+                id: action.organizationId ?? null,
+                avatar: action.organizationAvatar ?? null,
+              }}
+              name={action.organizationName}
+              textClassName="text-sm text-muted-foreground"
+            />
+          ) : null}
           <View className="mt-1 flex-row flex-wrap gap-1.5">
             {action.isUrgent ? <UrgentBadge /> : null}
             <ActionTypeBadge type={action.actionType} />
