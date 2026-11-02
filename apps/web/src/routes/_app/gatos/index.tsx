@@ -7,9 +7,10 @@ import { z } from "zod";
 import { CAT_SEXES, CAT_SEX_LABELS } from "@felina/domain/felina";
 
 import { APP_NAME } from "@/components/brand/Logo";
-import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/app/states";
+import { EmptyState, ErrorState, PageHeader } from "@/components/app/states";
+import { CatCardsSkeleton } from "@/components/app/skeletons";
 import { CatCard } from "@/components/felina/CatCard";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -18,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { pluralize } from "@/lib/format";
+import { colonyLabels, pluralize } from "@/lib/format";
 import { catsQuery, coloniesQuery } from "@/lib/queries";
 
 const searchSchema = z.object({
@@ -57,11 +58,9 @@ function Cats() {
         }
         actions={
           !townHall ? (
-            <Button asChild>
-              <Link to="/gatos/nuevo">
-                <Plus /> Nuevo gato
-              </Link>
-            </Button>
+            <Link to="/gatos/nuevo" className={buttonVariants()}>
+              <Plus /> Nuevo gato
+            </Link>
           ) : undefined
         }
       />
@@ -83,8 +82,10 @@ function Cats() {
           />
         </form>
         <Select
+          items={{ all: "Todas las colonias", none: "Sin colonia", ...colonyLabels(colonies.data) }}
           value={colonyFilter}
           onValueChange={(v) =>
+            v &&
             void navigate({
               search: (s) => ({
                 ...s,
@@ -108,6 +109,7 @@ function Cats() {
           </SelectContent>
         </Select>
         <Select
+          items={{ all: "Ambos sexos", ...CAT_SEX_LABELS }}
           value={search.sex ?? "all"}
           onValueChange={(v) =>
             void navigate({
@@ -131,8 +133,8 @@ function Cats() {
           </SelectContent>
         </Select>
       </div>
-      {query.isPending ? (
-        <LoadingState />
+      {query.isPending || query.isFetching ? (
+        <CatCardsSkeleton />
       ) : query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : query.data.length ? (
@@ -149,9 +151,9 @@ function Cats() {
           title="No hay gatos con estos filtros"
           action={
             !townHall ? (
-              <Button asChild>
-                <Link to="/gatos/nuevo">Registrar un gato</Link>
-              </Button>
+              <Link to="/gatos/nuevo" className={buttonVariants()}>
+                Registrar un gato
+              </Link>
             ) : undefined
           }
         />

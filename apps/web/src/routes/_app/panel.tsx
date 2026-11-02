@@ -4,8 +4,10 @@ import { CalendarCheck, Cat, GitPullRequestArrow, MapPinned, Newspaper, Plus } f
 
 import { APP_NAME } from "@/components/brand/Logo";
 import { EmptyState, PageHeader } from "@/components/app/states";
+import { RowsSkeleton } from "@/components/app/skeletons";
 import { ActionRow } from "@/components/felina/ActionRow";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 import { formatInteger, pluralize } from "@/lib/format";
 import { dashboardQuery } from "@/lib/queries";
 
@@ -44,7 +46,7 @@ function Stat({
 
 function Dashboard() {
   const { membership } = Route.useRouteContext();
-  const { data } = useSuspenseQuery(dashboardQuery);
+  const { data, isFetching } = useSuspenseQuery(dashboardQuery);
   const townHall = data.kind === "town_hall";
   const org = membership.organization;
 
@@ -55,23 +57,20 @@ function Dashboard() {
         title={org.name}
         actions={
           townHall ? (
-            <Button asChild>
-              <Link to="/feed">
-                <Newspaper /> Feed de acciones
-              </Link>
-            </Button>
+            <Link to="/feed" className={buttonVariants()}>
+              <Newspaper /> Feed de acciones
+            </Link>
           ) : (
             <>
-              <Button asChild variant="outline" className="bg-card">
-                <Link to="/gatos/nuevo">
-                  <Plus /> Gato
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link to="/acciones/nueva">
-                  <Plus /> Acción
-                </Link>
-              </Button>
+              <Link
+                to="/gatos/nuevo"
+                className={cn(buttonVariants({ variant: "outline" }), "bg-card")}
+              >
+                <Plus /> Gato
+              </Link>
+              <Link to="/acciones/nueva" className={buttonVariants()}>
+                <Plus /> Acción
+              </Link>
             </>
           )
         }
@@ -118,7 +117,9 @@ function Dashboard() {
           <h2 className="flex items-center gap-2 border-b px-4 py-3 font-semibold">
             <CalendarCheck className="size-4 text-brand" /> Próximas acciones
           </h2>
-          {data.upcoming.length ? (
+          {isFetching ? (
+            <RowsSkeleton framed={false} badges rows={3} label="Cargando acciones…" />
+          ) : data.upcoming.length ? (
             <ul className="divide-y">
               {data.upcoming.map((a) => (
                 <ActionRow key={a.id} action={a} showOrganization={townHall} />
@@ -131,9 +132,9 @@ function Dashboard() {
               title="No hay acciones programadas"
               action={
                 !townHall ? (
-                  <Button asChild size="sm">
-                    <Link to="/acciones/nueva">Planificar una acción</Link>
-                  </Button>
+                  <Link to="/acciones/nueva" className={buttonVariants({ size: "sm" })}>
+                    Planificar una acción
+                  </Link>
                 ) : undefined
               }
             />
@@ -152,7 +153,9 @@ function Dashboard() {
               </>
             )}
           </h2>
-          {data.recent.length ? (
+          {isFetching ? (
+            <RowsSkeleton framed={false} badges rows={3} label="Cargando acciones…" />
+          ) : data.recent.length ? (
             <ul className="divide-y">
               {data.recent.map((a) => (
                 <ActionRow key={a.id} action={a} showOrganization={townHall} />
@@ -181,9 +184,9 @@ function Dashboard() {
           description="Con su ubicación exacta y el municipio. Después podrás añadir sus gatos."
           action={
             membership.role === "admin" ? (
-              <Button asChild>
-                <Link to="/colonias/nueva">Registrar colonia</Link>
-              </Button>
+              <Link to="/colonias/nueva" className={buttonVariants()}>
+                Registrar colonia
+              </Link>
             ) : undefined
           }
         />

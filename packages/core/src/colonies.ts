@@ -105,8 +105,7 @@ export function getColony(ctx: OrgContext, id: string) {
         sex: cats.sex,
         birthDate: cats.birthDate,
         birthDateApproximate: cats.birthDateApproximate,
-        sterilized: sql<boolean>`exists (select 1 from action_cats ac join actions a on a.id = ac.action_id
-          where ac.cat_id = ${cats.id} and a.action_type = 'sterilization' and a.status = 'done')`,
+        sterilized: cats.sterilized,
         updatedAt: cats.updatedAt,
       })
       .from(cats)

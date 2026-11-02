@@ -40,6 +40,7 @@ export const catChangesSchema = z
     sex: z.enum(CAT_SEXES).optional(),
     birthDate: birthDateSchema.optional(),
     birthDateApproximate: z.boolean().optional(),
+    sterilized: z.boolean().optional(),
     description: optionalText(4000).optional(),
     address: optionalText(300).optional(),
     municipalityCode: municipalityCodeSchema.optional(),

@@ -150,6 +150,7 @@ export async function proposeCatChange(
         sex: cats.sex,
         birthDate: cats.birthDate,
         birthDateApproximate: cats.birthDateApproximate,
+        sterilized: cats.sterilized,
         description: cats.description,
         address: cats.address,
         municipalityCode: cats.municipalityCode,

@@ -7,7 +7,8 @@ import { MEMBER_ROLE_LABELS, ORGANIZATION_KIND_LABELS } from "@felina/domain/fel
 import { APP_NAME, Logo } from "@/components/brand/Logo";
 import { ErrorState } from "@/components/app/states";
 import { FormError } from "@/components/forms/Field";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { invitationQuery, viewerQuery } from "@/lib/queries";
@@ -79,16 +80,20 @@ function InvitationPage() {
           </p>
         ) : !viewer ? (
           <div className="mt-6 grid gap-2">
-            <Button asChild>
-              <Link to="/login" search={{ mode: "signup", redirect: href }}>
-                Crear cuenta con {invitation.email}
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="bg-card">
-              <Link to="/login" search={{ redirect: href }}>
-                Ya tengo cuenta
-              </Link>
-            </Button>
+            <Link
+              to="/login"
+              search={{ mode: "signup", redirect: href }}
+              className={buttonVariants()}
+            >
+              Crear cuenta con {invitation.email}
+            </Link>
+            <Link
+              to="/login"
+              search={{ redirect: href }}
+              className={cn(buttonVariants({ variant: "outline" }), "bg-card")}
+            >
+              Ya tengo cuenta
+            </Link>
           </div>
         ) : wrongAccount ? (
           <p className="mt-5 rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning">

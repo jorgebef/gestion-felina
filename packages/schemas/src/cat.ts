@@ -40,6 +40,7 @@ export const catInputSchema = z
     sex: z.enum(CAT_SEXES).default("unknown"),
     birthDate: birthDateSchema,
     birthDateApproximate: z.boolean().default(false),
+    sterilized: z.boolean().default(false),
     description: optionalText(4000),
     photoKey: photoKeySchema,
   })

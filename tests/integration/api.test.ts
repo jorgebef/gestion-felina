@@ -269,10 +269,57 @@ describeDb("API", () => {
     expect((await concejalia.dashboard.get()).actions.pendingValidation).toBe(0);
 
     // Editing after validation is flagged in the feed.
-    await ana.actions.setStatus(actionId, "done");
+    expect((await ana.cats.get(catId)).cat.sterilized).toBe(false);
+    expect(await ana.actions.setStatus(actionId, "done")).toEqual({ ok: true, sterilizedCats: 1 });
     const [edited] = (await concejalia.actions.list({ view: "feed" })).items;
     expect(edited).toMatchObject({ status: "done", modifiedAfterValidation: true });
+
+    // --- Sterilized: set by a done sterilization, otherwise edited by hand ---------
     expect((await ana.cats.get(catId)).cat.sterilized).toBe(true);
+    expect((await concejalia.cats.list())[0]?.sterilized).toBe(true);
+    // Reopening the action doesn't unmark it; marking it done again changes nothing.
+    await ana.actions.setStatus(actionId, "in_progress");
+    expect((await ana.cats.get(catId)).cat.sterilized).toBe(true);
+    expect(await ana.actions.setStatus(actionId, "done")).toEqual({ ok: true, sterilizedCats: 0 });
+    const catInput = {
+      colonyId,
+      name: "Misi",
+      sex: "female" as const,
+      birthDate: null,
+      photoKey,
+      ...MADRID_POINT,
+      municipalityCode: MADRID,
+    };
+    await ana.cats.update(catId, { ...catInput, sterilized: false });
+    expect((await ana.cats.get(catId)).cat.sterilized).toBe(false);
+    // A cat registered as already sterilized; a done action that isn't a sterilization
+    // leaves the flag alone.
+    const { id: tomId } = await ana.cats.create({ ...catInput, name: "Tom", sterilized: true });
+    expect((await ana.cats.get(tomId)).cat.sterilized).toBe(true);
+    await ana.actions.create({
+      actionType: "vet_visit",
+      name: "Revisión de Misi",
+      scheduledAt: today.toISOString(),
+      isUrgent: false,
+      status: "done",
+      colonyId,
+      catIds: [catId],
+      participantIds: [],
+    });
+    expect((await ana.cats.get(catId)).cat.sterilized).toBe(false);
+    // Created directly as a done sterilization: the cat is marked.
+    await ana.actions.create({
+      actionType: "sterilization",
+      name: "Castración de Misi (repaso)",
+      scheduledAt: today.toISOString(),
+      isUrgent: false,
+      status: "done",
+      colonyId,
+      catIds: [catId],
+      participantIds: [],
+    });
+    expect((await ana.cats.get(catId)).cat.sterilized).toBe(true);
+    expect((await ana.dashboard.get()).cats).toMatchObject({ total: 2, sterilized: 2 });
 
     // --- Change proposals ----------------------------------------------------------
     await expectApiError(

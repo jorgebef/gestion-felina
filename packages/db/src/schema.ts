@@ -182,6 +182,8 @@ export const cats = pgTable("cats", {
   /** `YYYY-MM-DD`, or null when unknown. */
   birthDate: date("birth_date", { mode: "string" }),
   birthDateApproximate: boolean("birth_date_approximate").notNull().default(false),
+  /** Edited by hand; also set when a sterilization action with the cat is done. */
+  sterilized: boolean("sterilized").notNull().default(false),
   description: text("description"),
   photoKey: text("photo_key").notNull(),
   latitude: doublePrecision("latitude").notNull(),

@@ -7,6 +7,7 @@ import { catDisplayName } from "@felina/domain/felina";
 
 import { APP_NAME } from "@/components/brand/Logo";
 import { Facts, PageHeader } from "@/components/app/states";
+import { CardsSkeleton, RowsSkeleton } from "@/components/app/skeletons";
 import { ActionRow } from "@/components/felina/ActionRow";
 import { SexLabel, SterilizedBadge } from "@/components/felina/badges";
 import { CatPhoto } from "@/components/felina/CatPhoto";
@@ -24,7 +25,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { formatAge, formatDate, formatDateTime } from "@/lib/format";
@@ -41,7 +43,7 @@ export const Route = createFileRoute("/_app/gatos/$catId/")({
 function CatDetail() {
   const { catId } = Route.useParams();
   const { membership } = Route.useRouteContext();
-  const { data } = useSuspenseQuery(catQuery(catId));
+  const { data, isFetching } = useSuspenseQuery(catQuery(catId));
   const proposals = useQuery(proposalsQuery({ catId }));
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -77,27 +79,28 @@ function CatDetail() {
             ) : null}
             {permissions.canEdit ? (
               <>
-                <Button asChild variant="outline" className="bg-card">
-                  <Link
-                    to="/acciones/nueva"
-                    search={{ catId, colonyId: cat.colonyId ?? undefined }}
-                  >
-                    <Plus /> Acción
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="bg-card">
-                  <Link to="/gatos/$catId/editar" params={{ catId }}>
-                    <Pencil /> Editar
-                  </Link>
-                </Button>
+                <Link
+                  to="/acciones/nueva"
+                  search={{ catId, colonyId: cat.colonyId ?? undefined }}
+                  className={cn(buttonVariants({ variant: "outline" }), "bg-card")}
+                >
+                  <Plus /> Acción
+                </Link>
+                <Link
+                  to="/gatos/$catId/editar"
+                  params={{ catId }}
+                  className={cn(buttonVariants({ variant: "outline" }), "bg-card")}
+                >
+                  <Pencil /> Editar
+                </Link>
               </>
             ) : null}
             {permissions.canDelete ? (
               <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" className="text-negative hover:text-negative">
-                    <Trash2 /> Eliminar
-                  </Button>
+                <AlertDialogTrigger
+                  render={<Button variant="ghost" className="text-negative hover:text-negative" />}
+                >
+                  <Trash2 /> Eliminar
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
@@ -184,7 +187,9 @@ function CatDetail() {
             <h2 className="flex items-center gap-2 border-b px-4 py-3 font-semibold">
               <ClipboardList className="size-4 text-brand" /> Historial de acciones
             </h2>
-            {data.actions.length ? (
+            {isFetching ? (
+              <RowsSkeleton framed={false} badges rows={3} label="Cargando acciones…" />
+            ) : data.actions.length ? (
               <ul className="divide-y">
                 {data.actions.map((a) => (
                   <ActionRow key={a.id} action={a} />
@@ -198,12 +203,16 @@ function CatDetail() {
           {proposals.data?.length ? (
             <section>
               <h2 className="mb-3 font-semibold">Propuestas de cambio</h2>
-              <ProposalList
-                proposals={proposals.data}
-                canResolve={
-                  membership.role === "admin" && membership.organization.kind === "association"
-                }
-              />
+              {proposals.isFetching ? (
+                <CardsSkeleton cards={1} className="space-y-3" label="Cargando propuestas…" />
+              ) : (
+                <ProposalList
+                  proposals={proposals.data}
+                  canResolve={
+                    membership.role === "admin" && membership.organization.kind === "association"
+                  }
+                />
+              )}
             </section>
           ) : null}
         </div>

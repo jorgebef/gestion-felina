@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { APP_NAME } from "@/components/brand/Logo";
 import { EmptyState, Facts, PageHeader } from "@/components/app/states";
+import { CardsSkeleton, CatCardsSkeleton, RowsSkeleton } from "@/components/app/skeletons";
 import { ActionRow } from "@/components/felina/ActionRow";
 import { AuthorizationBadge } from "@/components/felina/badges";
 import { CatCard } from "@/components/felina/CatCard";
@@ -22,7 +23,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -40,7 +42,7 @@ export const Route = createFileRoute("/_app/colonias/$colonyId/")({
 function ColonyDetail() {
   const { colonyId } = Route.useParams();
   const { membership } = Route.useRouteContext();
-  const { data } = useSuspenseQuery(colonyQuery(colonyId));
+  const { data, isFetching } = useSuspenseQuery(colonyQuery(colonyId));
   const proposals = useQuery(proposalsQuery({ colonyId }));
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -99,18 +101,20 @@ function ColonyDetail() {
               <ProposeChangeDialog target={{ type: "colony", id: colony.id, current: colony }} />
             ) : null}
             {permissions.canEdit ? (
-              <Button asChild variant="outline" className="bg-card">
-                <Link to="/colonias/$colonyId/editar" params={{ colonyId }}>
-                  <Pencil /> Editar
-                </Link>
-              </Button>
+              <Link
+                to="/colonias/$colonyId/editar"
+                params={{ colonyId }}
+                className={cn(buttonVariants({ variant: "outline" }), "bg-card")}
+              >
+                <Pencil /> Editar
+              </Link>
             ) : null}
             {permissions.canDelete ? (
               <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" className="text-negative hover:text-negative">
-                    <Trash2 /> Eliminar
-                  </Button>
+                <AlertDialogTrigger
+                  render={<Button variant="ghost" className="text-negative hover:text-negative" />}
+                >
+                  <Trash2 /> Eliminar
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
@@ -164,17 +168,25 @@ function ColonyDetail() {
           <section>
             <div className="mb-3 flex items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 font-semibold">
-                <Cat className="size-4 text-brand" /> Gatos ({data.cats.length})
+                <Cat className="size-4 text-brand" /> Gatos
+                {isFetching ? null : ` (${data.cats.length})`}
               </h2>
               {permissions.canAddCats ? (
-                <Button asChild size="sm" variant="outline" className="bg-card">
-                  <Link to="/gatos/nuevo" search={{ colonyId }}>
-                    <Plus /> Añadir gato
-                  </Link>
-                </Button>
+                <Link
+                  to="/gatos/nuevo"
+                  search={{ colonyId }}
+                  className={cn(buttonVariants({ size: "sm", variant: "outline" }), "bg-card")}
+                >
+                  <Plus /> Añadir gato
+                </Link>
               ) : null}
             </div>
-            {data.cats.length ? (
+            {isFetching ? (
+              <CatCardsSkeleton
+                cards={4}
+                className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4"
+              />
+            ) : data.cats.length ? (
               <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                 {data.cats.map((cat) => (
                   <li key={cat.id}>
@@ -193,14 +205,18 @@ function ColonyDetail() {
                 <ClipboardList className="size-4 text-brand" /> Acciones
               </h2>
               {permissions.canAddCats ? (
-                <Button asChild size="sm" variant="outline" className="bg-card">
-                  <Link to="/acciones/nueva" search={{ colonyId }}>
-                    <Plus /> Nueva acción
-                  </Link>
-                </Button>
+                <Link
+                  to="/acciones/nueva"
+                  search={{ colonyId }}
+                  className={cn(buttonVariants({ size: "sm", variant: "outline" }), "bg-card")}
+                >
+                  <Plus /> Nueva acción
+                </Link>
               ) : null}
             </div>
-            {data.actions.length ? (
+            {isFetching ? (
+              <RowsSkeleton framed={false} badges rows={3} label="Cargando acciones…" />
+            ) : data.actions.length ? (
               <ul className="divide-y">
                 {data.actions.map((a) => (
                   <ActionRow key={a.id} action={a} />
@@ -219,7 +235,9 @@ function ColonyDetail() {
           />
           <section>
             <h2 className="mb-3 font-semibold">Propuestas de cambio</h2>
-            {proposals.data?.length ? (
+            {proposals.isPending || proposals.isFetching ? (
+              <CardsSkeleton cards={1} className="space-y-3" label="Cargando propuestas…" />
+            ) : proposals.data?.length ? (
               <ProposalList
                 proposals={proposals.data}
                 canResolve={

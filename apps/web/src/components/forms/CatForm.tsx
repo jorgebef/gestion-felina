@@ -25,8 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { errorMessage } from "@/lib/errors";
+import { colonyLabels } from "@/lib/format";
 import { colonyOptionsQuery } from "@/lib/queries";
 
 export interface CatFormValues {
@@ -35,6 +37,7 @@ export interface CatFormValues {
   sex: CatSex;
   birthDate: string;
   birthDateApproximate: boolean;
+  sterilized: boolean;
   description: string;
   colonyId: string | null;
   location: LocationValue;
@@ -46,6 +49,7 @@ export const emptyCat: CatFormValues = {
   sex: "unknown",
   birthDate: "",
   birthDateApproximate: false,
+  sterilized: false,
   description: "",
   colonyId: null,
   location: emptyLocation,
@@ -93,6 +97,7 @@ export function CatForm({
       sex: values.sex,
       birthDate: values.birthDate,
       birthDateApproximate: values.birthDateApproximate,
+      sterilized: values.sterilized,
       description: values.description,
       colonyId: values.colonyId,
       ...(location.ok ? location.data : {}),
@@ -147,9 +152,10 @@ export function CatForm({
           </Field>
           <Field id="colony" label="Colonia" error={errors.colonyId}>
             <Select
+              items={{ [NO_COLONY]: "Sin colonia", ...colonyLabels(colonies.data) }}
               value={values.colonyId ?? NO_COLONY}
               onValueChange={(v) => {
-                const colonyId = v === NO_COLONY ? null : v;
+                const colonyId = !v || v === NO_COLONY ? null : v;
                 set("colonyId", colonyId);
                 // A cat joining a colony usually lives there: suggest its location.
                 if (colonyId && values.location.latitude === null) {
@@ -218,6 +224,20 @@ export function CatForm({
               Es una fecha aproximada
             </Label>
           </div>
+        </div>
+
+        <div className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4">
+          <div className="space-y-0.5">
+            <Label htmlFor="sterilized">Castrado</Label>
+            <p className="text-sm text-muted-foreground">
+              Se marca automáticamente al completar una acción de castración con este gato.
+            </p>
+          </div>
+          <Switch
+            id="sterilized"
+            checked={values.sterilized}
+            onCheckedChange={(v) => set("sterilized", v)}
+          />
         </div>
 
         <Field id="description" label="Descripción" optional error={errors.description}>

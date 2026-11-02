@@ -5,10 +5,11 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { APP_NAME } from "@/components/brand/Logo";
-import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/app/states";
+import { EmptyState, ErrorState, PageHeader } from "@/components/app/states";
+import { CardsSkeleton, MapSkeleton } from "@/components/app/skeletons";
 import { AuthorizationBadge, Pill } from "@/components/felina/badges";
 import { LocationMap } from "@/components/felina/LocationMap";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -53,11 +54,9 @@ function Colonies() {
         }
         actions={
           canCreate ? (
-            <Button asChild>
-              <Link to="/colonias/nueva">
-                <Plus /> Nueva colonia
-              </Link>
-            </Button>
+            <Link to="/colonias/nueva" className={buttonVariants()}>
+              <Plus /> Nueva colonia
+            </Link>
           ) : undefined
         }
       />
@@ -80,6 +79,7 @@ function Colonies() {
           />
         </form>
         <Select
+          items={{ all: "Todas", yes: "Autorizadas", no: "Sin autorizar" }}
           value={search.authorized ?? "all"}
           onValueChange={(v) =>
             void navigate({
@@ -114,8 +114,12 @@ function Colonies() {
         </div>
       </div>
 
-      {query.isPending ? (
-        <LoadingState />
+      {query.isPending || query.isFetching ? (
+        view === "map" ? (
+          <MapSkeleton className="h-[60vh]" />
+        ) : (
+          <CardsSkeleton label="Cargando colonias…" />
+        )
       ) : query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : !query.data.length ? (
@@ -135,9 +139,9 @@ function Colonies() {
           }
           action={
             canCreate ? (
-              <Button asChild>
-                <Link to="/colonias/nueva">Registrar colonia</Link>
-              </Button>
+              <Link to="/colonias/nueva" className={buttonVariants()}>
+                Registrar colonia
+              </Link>
             ) : undefined
           }
         />

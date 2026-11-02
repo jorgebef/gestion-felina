@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -117,59 +118,62 @@ function UserMenu({ viewer, compact = false }: { viewer: Viewer; compact?: boole
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-accent",
-            compact && "w-auto",
-          )}
-        >
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-sm font-semibold text-brand">
-            {initials}
-          </span>
-          {!compact ? (
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium">
-                {viewer.membership?.organization.name ?? "Sin organización"}
-              </span>
-              <span className="block truncate text-xs text-muted-foreground">
-                {viewer.user.email}
-              </span>
+      <DropdownMenuTrigger
+        render={
+          <button
+            type="button"
+            className={cn(
+              "flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-accent",
+              compact && "w-auto",
+            )}
+          />
+        }
+      >
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-sm font-semibold text-brand">
+          {initials}
+        </span>
+        {!compact ? (
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium">
+              {viewer.membership?.organization.name ?? "Sin organización"}
             </span>
-          ) : null}
-        </button>
+            <span className="block truncate text-xs text-muted-foreground">
+              {viewer.user.email}
+            </span>
+          </span>
+        ) : null}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
-        <DropdownMenuLabel className="font-normal">
-          <span className="block truncate text-sm font-medium">
-            {viewer.user.name || "Mi cuenta"}
-          </span>
-          <span className="block truncate text-xs text-muted-foreground">{viewer.user.email}</span>
-          {viewer.membership ? (
-            <span className="mt-1 block truncate text-xs text-muted-foreground">
-              {ORGANIZATION_KIND_LABELS[viewer.membership.organization.kind]} ·{" "}
-              {viewer.membership.organization.name}
+        {/* Base UI menu labels must live inside a group. */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="font-normal">
+            <span className="block truncate text-sm font-medium">
+              {viewer.user.name || "Mi cuenta"}
             </span>
-          ) : null}
-        </DropdownMenuLabel>
+            <span className="block truncate text-xs text-muted-foreground">
+              {viewer.user.email}
+            </span>
+            {viewer.membership ? (
+              <span className="mt-1 block truncate text-xs text-muted-foreground">
+                {ORGANIZATION_KIND_LABELS[viewer.membership.organization.kind]} ·{" "}
+                {viewer.membership.organization.name}
+              </span>
+            ) : null}
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/perfil">
-            <UserRound />
-            Mi perfil
-          </Link>
+        <DropdownMenuItem render={<Link to="/perfil" />}>
+          <UserRound />
+          Mi perfil
         </DropdownMenuItem>
         {viewer.membership?.organization.status === "approved" ? (
-          <DropdownMenuItem asChild>
-            <Link to="/ajustes">
-              <Settings />
-              Ajustes de la organización
-            </Link>
+          <DropdownMenuItem render={<Link to="/ajustes" />}>
+            <Settings />
+            Ajustes de la organización
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => void signOut()}>
+        <DropdownMenuItem onClick={() => void signOut()}>
           <LogOut />
           Cerrar sesión
         </DropdownMenuItem>
@@ -195,12 +199,10 @@ export function AppShell({ viewer, children }: { viewer: Viewer; children: React
       <div className="min-w-0">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/90 px-4 backdrop-blur lg:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Abrir menú">
-                <Menu />
-              </Button>
+            <SheetTrigger render={<Button variant="ghost" size="icon" aria-label="Abrir menú" />}>
+              <Menu />
             </SheetTrigger>
-            <SheetContent className="px-3 py-4">
+            <SheetContent side="left" className="w-[85vw] max-w-xs gap-0 px-3 py-4">
               <SheetTitle className="mb-1 px-2">
                 <Logo />
               </SheetTitle>

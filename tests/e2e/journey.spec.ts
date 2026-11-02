@@ -89,7 +89,7 @@ test("association and town hall workflow", async ({ browser }) => {
     .setInputFiles({ name: "misi.png", mimeType: "image/png", buffer: PNG });
   await expect(ana.getByRole("button", { name: "Cambiar foto" })).toBeVisible();
   await ana.getByLabel("Nombre").first().fill("Misi");
-  await ana.getByLabel("Hembra").check();
+  await ana.getByRole("radio", { name: "Hembra" }).click();
   await ana.getByRole("button", { name: "Registrar gato" }).click();
   await expect(ana.getByRole("heading", { name: "Misi" })).toBeVisible();
   // The photo is served by the API (only to people who can see the cat).
@@ -104,7 +104,7 @@ test("association and town hall workflow", async ({ browser }) => {
   await ana.getByRole("option", { name: "Castración" }).click();
   await ana.getByLabel("Nombre", { exact: true }).fill(actionName);
   await ana.getByLabel("Fecha y hora").fill("2030-05-04T10:30");
-  await ana.getByLabel("Es urgente").click();
+  await ana.getByRole("switch", { name: "Es urgente" }).click();
   await ana.getByRole("button", { name: "Guardar acción" }).click();
   await expect(ana.getByRole("heading", { name: actionName })).toBeVisible();
   await expect(ana.getByText("Urgente").first()).toBeVisible();

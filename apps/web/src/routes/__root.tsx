@@ -3,7 +3,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 
 import { APP_NAME, FAVICON, Logo } from "@/components/brand/Logo";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import TanStackQueryDevtools from "@/integrations/tanstack-query/devtools";
@@ -55,9 +55,9 @@ function NotFound() {
         <p className="text-sm text-muted-foreground">
           El enlace no existe o ya no tienes acceso a este contenido.
         </p>
-        <Button asChild>
-          <Link to="/">Volver al inicio</Link>
-        </Button>
+        <Link to="/" className={buttonVariants()}>
+          Volver al inicio
+        </Link>
       </div>
     </main>
   );
@@ -70,7 +70,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="min-h-screen font-sans antialiased">
-        <TooltipProvider delayDuration={150}>{children}</TooltipProvider>
+        <TooltipProvider delay={150}>{children}</TooltipProvider>
         <Toaster position="bottom-right" richColors closeButton />
         {import.meta.env.DEV ? (
           <TanStackDevtools

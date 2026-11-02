@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { APP_NAME } from "@/components/brand/Logo";
-import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/app/states";
+import { EmptyState, ErrorState, PageHeader } from "@/components/app/states";
+import { RowsSkeleton } from "@/components/app/skeletons";
 import { ActionRow, type ActionSummary } from "@/components/felina/ActionRow";
 import { Pager } from "@/components/felina/Pager";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,7 @@ function Feed() {
       <Tabs
         value={validation}
         onValueChange={(v) =>
-          void navigate({ search: { validation: v as typeof validation, page: undefined } })
+          navigate({ search: { validation: v as typeof validation, page: undefined } })
         }
         className="mb-4"
       >
@@ -91,8 +92,8 @@ function Feed() {
           <TabsTrigger value="all">Todas</TabsTrigger>
         </TabsList>
       </Tabs>
-      {query.isPending ? (
-        <LoadingState />
+      {query.isPending || query.isFetching ? (
+        <RowsSkeleton badges trailing label="Cargando acciones…" />
       ) : query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : query.data.items.length ? (

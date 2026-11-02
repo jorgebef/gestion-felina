@@ -40,7 +40,6 @@ export const coloniesQuery = (query: ColonyListQuery = {}) =>
   queryOptions({
     queryKey: ["colonies", "list", query],
     queryFn: () => api().colonies.list(query),
-    placeholderData: (previous) => previous,
   });
 
 export const colonyQuery = (id: string) =>
@@ -58,7 +57,6 @@ export const catsQuery = (query: CatListQuery = {}) =>
   queryOptions({
     queryKey: ["cats", "list", query],
     queryFn: () => api().cats.list(query),
-    placeholderData: (previous) => previous,
   });
 
 export const catQuery = (id: string) =>
@@ -76,7 +74,6 @@ export const actionsQuery = (query: Partial<ActionListQuery> = {}) =>
   queryOptions({
     queryKey: ["actions", "list", query],
     queryFn: () => api().actions.list(query),
-    placeholderData: (previous) => previous,
   });
 
 export const actionQuery = (id: string) =>
@@ -112,7 +109,6 @@ export const adminOrganizationsQuery = (query: OrganizationListQuery = {}) =>
   queryOptions({
     queryKey: ["admin", "organizations", query],
     queryFn: () => api().admin.organizations(query),
-    placeholderData: (previous) => previous,
   });
 
 export const adminOrganizationQuery = (id: string) =>

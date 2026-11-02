@@ -13,6 +13,7 @@ import {
 
 import { APP_NAME } from "@/components/brand/Logo";
 import { Facts, PageHeader } from "@/components/app/states";
+import { CatCardsSkeleton, RowsSkeleton } from "@/components/app/skeletons";
 import {
   ActionStatusBadge,
   ActionTypeBadge,
@@ -31,7 +32,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -55,7 +57,7 @@ export const Route = createFileRoute("/_app/acciones/$actionId/")({
 
 function ActionDetail() {
   const { actionId } = Route.useParams();
-  const { data } = useSuspenseQuery(actionQuery(actionId));
+  const { data, isFetching } = useSuspenseQuery(actionQuery(actionId));
   const router = useRouter();
   const queryClient = useQueryClient();
   const { action, permissions } = data;
@@ -63,8 +65,18 @@ function ActionDetail() {
 
   const setStatus = useMutation({
     mutationFn: (status: ActionStatus) => api().actions.setStatus(actionId, status),
-    onSuccess: async () => {
-      toast.success("Estado actualizado");
+    onSuccess: async ({ sterilizedCats }) => {
+      toast.success(
+        "Estado actualizado",
+        sterilizedCats
+          ? {
+              description:
+                sterilizedCats === 1
+                  ? "1 gato marcado como castrado."
+                  : `${sterilizedCats} gatos marcados como castrados.`,
+            }
+          : undefined,
+      );
       await refresh();
     },
     onError: (e) => toast.error(errorMessage(e)),
@@ -116,8 +128,9 @@ function ActionDetail() {
             {permissions.canEdit ? (
               <>
                 <Select
+                  items={ACTION_STATUS_LABELS}
                   value={action.status}
-                  onValueChange={(v) => setStatus.mutate(v as ActionStatus)}
+                  onValueChange={(v) => v && setStatus.mutate(v)}
                   disabled={setStatus.isPending}
                 >
                   <SelectTrigger className="w-40 bg-card" aria-label="Cambiar estado">
@@ -131,19 +144,21 @@ function ActionDetail() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button asChild variant="outline" className="bg-card">
-                  <Link to="/acciones/$actionId/editar" params={{ actionId }}>
-                    <Pencil /> Editar
-                  </Link>
-                </Button>
+                <Link
+                  to="/acciones/$actionId/editar"
+                  params={{ actionId }}
+                  className={cn(buttonVariants({ variant: "outline" }), "bg-card")}
+                >
+                  <Pencil /> Editar
+                </Link>
               </>
             ) : null}
             {permissions.canDelete ? (
               <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" className="text-negative hover:text-negative">
-                    <Trash2 /> Eliminar
-                  </Button>
+                <AlertDialogTrigger
+                  render={<Button variant="ghost" className="text-negative hover:text-negative" />}
+                >
+                  <Trash2 /> Eliminar
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
@@ -212,9 +227,12 @@ function ActionDetail() {
 
           <section>
             <h2 className="mb-3 flex items-center gap-2 font-semibold">
-              <Cat className="size-4 text-brand" /> Gatos ({data.cats.length})
+              <Cat className="size-4 text-brand" /> Gatos
+              {isFetching ? null : ` (${data.cats.length})`}
             </h2>
-            {data.cats.length ? (
+            {isFetching ? (
+              <CatCardsSkeleton cards={4} className="grid grid-cols-2 gap-3 sm:grid-cols-4" />
+            ) : data.cats.length ? (
               <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {data.cats.map((cat) => (
                   <li key={cat.id}>
@@ -242,9 +260,17 @@ function ActionDetail() {
 
         <aside className="surface h-fit p-5">
           <h2 className="flex items-center gap-2 font-semibold">
-            <Users className="size-4 text-brand" /> Participantes ({data.participantCount})
+            <Users className="size-4 text-brand" /> Participantes
+            {isFetching ? null : ` (${data.participantCount})`}
           </h2>
-          {data.participants.length ? (
+          {isFetching ? (
+            <RowsSkeleton
+              framed={false}
+              rows={2}
+              className="-mx-4 mt-1 divide-y-0"
+              label="Cargando participantes…"
+            />
+          ) : data.participants.length ? (
             <ul className="mt-3 space-y-2 text-sm">
               {data.participants.map((p) => (
                 <li key={p.userId}>

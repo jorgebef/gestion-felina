@@ -6,7 +6,8 @@ import { z } from "zod";
 import { PROPOSAL_STATUSES } from "@felina/domain/felina";
 
 import { APP_NAME } from "@/components/brand/Logo";
-import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/app/states";
+import { EmptyState, ErrorState, PageHeader } from "@/components/app/states";
+import { CardsSkeleton } from "@/components/app/skeletons";
 import { ProposalList } from "@/components/felina/Proposals";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { proposalsQuery } from "@/lib/queries";
@@ -42,7 +43,7 @@ function Proposals() {
       />
       <Tabs
         value={status}
-        onValueChange={(v) => void navigate({ search: { status: v as typeof status } })}
+        onValueChange={(v) => navigate({ search: { status: v as typeof status } })}
         className="mb-4"
       >
         <TabsList>
@@ -52,8 +53,8 @@ function Proposals() {
           <TabsTrigger value="all">Todas</TabsTrigger>
         </TabsList>
       </Tabs>
-      {query.isPending ? (
-        <LoadingState />
+      {query.isPending || query.isFetching ? (
+        <CardsSkeleton cards={3} className="max-w-3xl space-y-3" label="Cargando propuestas…" />
       ) : query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : query.data.length ? (

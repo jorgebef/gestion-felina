@@ -15,6 +15,7 @@ import { invitationInputSchema } from "@felina/schemas/organization";
 
 import { APP_NAME } from "@/components/brand/Logo";
 import { Facts, PageHeader } from "@/components/app/states";
+import { RowsSkeleton } from "@/components/app/skeletons";
 import { OrganizationStatusBadge } from "@/components/felina/badges";
 import { Field, FormError } from "@/components/forms/Field";
 import { Button } from "@/components/ui/button";
@@ -43,7 +44,7 @@ export const Route = createFileRoute("/admin/$orgId")({
 
 function AdminOrganization() {
   const { orgId } = Route.useParams();
-  const { data } = useSuspenseQuery(adminOrganizationQuery(orgId));
+  const { data, isFetching } = useSuspenseQuery(adminOrganizationQuery(orgId));
   const queryClient = useQueryClient();
   const [note, setNote] = useState(data.organization.reviewNote ?? "");
   const [email, setEmail] = useState("");
@@ -134,8 +135,12 @@ function AdminOrganization() {
           </section>
 
           <section className="surface">
-            <h2 className="border-b px-5 py-3 font-semibold">Miembros ({data.members.length})</h2>
-            {data.members.length ? (
+            <h2 className="border-b px-5 py-3 font-semibold">
+              Miembros{isFetching ? null : ` (${data.members.length})`}
+            </h2>
+            {isFetching ? (
+              <RowsSkeleton framed={false} rows={2} trailing label="Cargando miembros…" />
+            ) : data.members.length ? (
               <ul className="divide-y text-sm">
                 {data.members.map((m) => (
                   <li
@@ -159,7 +164,7 @@ function AdminOrganization() {
                 Nadie ha aceptado todavía la invitación.
               </p>
             )}
-            {data.invitations.length ? (
+            {!isFetching && data.invitations.length ? (
               <div className="border-t px-5 py-3">
                 <h3 className="text-sm font-medium">Invitaciones abiertas</h3>
                 <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
@@ -231,7 +236,11 @@ function AdminOrganization() {
                 />
               </Field>
               <Field id="admin-invite-role" label="Rol">
-                <Select value={role} onValueChange={(v) => setRole(v as MemberRole)}>
+                <Select
+                  items={MEMBER_ROLE_LABELS}
+                  value={role}
+                  onValueChange={(v) => v && setRole(v)}
+                >
                   <SelectTrigger id="admin-invite-role" className="w-full bg-card">
                     <SelectValue />
                   </SelectTrigger>

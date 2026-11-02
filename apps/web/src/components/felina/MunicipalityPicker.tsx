@@ -50,33 +50,35 @@ export function MunicipalityPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          type="button"
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          aria-invalid={invalid || undefined}
-          disabled={disabled}
-          className={cn(
-            "w-full justify-between bg-card font-normal",
-            !value && "text-muted-foreground",
-            invalid && "border-negative",
-          )}
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            <MapPin className="size-4 shrink-0 text-muted-foreground" />
-            <span className="truncate">
-              {value
-                ? `${value.name}${value.provinceName ? ` (${value.provinceName})` : ""}`
-                : "Busca el municipio"}
-            </span>
+      <PopoverTrigger
+        render={
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            aria-invalid={invalid || undefined}
+            disabled={disabled}
+            className={cn(
+              "w-full justify-between bg-card font-normal",
+              !value && "text-muted-foreground",
+              invalid && "border-negative",
+            )}
+          />
+        }
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <MapPin className="size-4 shrink-0 text-muted-foreground" />
+          <span className="truncate">
+            {value
+              ? `${value.name}${value.provinceName ? ` (${value.provinceName})` : ""}`
+              : "Busca el municipio"}
           </span>
-          <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
-        </Button>
+        </span>
+        <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] min-w-72 p-2" align="start">
+      <PopoverContent className="w-(--anchor-width) min-w-72 p-2" align="start">
         <Input
           autoFocus
           placeholder="Escribe al menos 2 letras"

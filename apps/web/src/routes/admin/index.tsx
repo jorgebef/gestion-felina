@@ -13,7 +13,8 @@ import {
 import { townHallCreateSchema } from "@felina/schemas/organization";
 
 import { APP_NAME } from "@/components/brand/Logo";
-import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/app/states";
+import { EmptyState, ErrorState, PageHeader } from "@/components/app/states";
+import { RowsSkeleton } from "@/components/app/skeletons";
 import { OrganizationStatusBadge, Pill } from "@/components/felina/badges";
 import { MunicipalityPicker, type MunicipalityValue } from "@/components/felina/MunicipalityPicker";
 import { Field, FormError } from "@/components/forms/Field";
@@ -38,7 +39,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
-import { formatDate, formatInteger, pluralize } from "@/lib/format";
+import { formatDate, pluralize } from "@/lib/format";
 import { adminOrganizationsQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/admin/")({
@@ -98,10 +99,8 @@ function NewTownHallDialog() {
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button>
-          <Plus /> Nuevo ayuntamiento
-        </Button>
+      <DialogTrigger render={<Button />}>
+        <Plus /> Nuevo ayuntamiento
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -177,7 +176,6 @@ function AdminHome() {
       q: search.q,
     }),
   );
-  const counts = query.data?.counts ?? {};
 
   return (
     <>
@@ -190,14 +188,10 @@ function AdminHome() {
       <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
         <Tabs
           value={status}
-          onValueChange={(v) =>
-            void navigate({ search: (s) => ({ ...s, status: v as typeof status }) })
-          }
+          onValueChange={(v) => navigate({ search: (s) => ({ ...s, status: v as typeof status }) })}
         >
           <TabsList>
-            <TabsTrigger value="pending">
-              Pendientes ({formatInteger(counts.pending ?? 0)})
-            </TabsTrigger>
+            <TabsTrigger value="pending">Pendientes</TabsTrigger>
             <TabsTrigger value="approved">Aprobadas</TabsTrigger>
             <TabsTrigger value="rejected">Rechazadas</TabsTrigger>
             <TabsTrigger value="suspended">Suspendidas</TabsTrigger>
@@ -222,6 +216,7 @@ function AdminHome() {
             />
           </form>
           <Select
+            items={{ all: "Todos los tipos", ...ORGANIZATION_KIND_LABELS }}
             value={search.kind ?? "all"}
             onValueChange={(v) =>
               void navigate({
@@ -247,8 +242,8 @@ function AdminHome() {
         </div>
       </div>
 
-      {query.isPending ? (
-        <LoadingState />
+      {query.isPending || query.isFetching ? (
+        <RowsSkeleton icon trailing rows={6} label="Cargando organizaciones…" />
       ) : query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : query.data.items.length ? (

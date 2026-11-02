@@ -231,6 +231,28 @@ function values(data: ActionInput, municipalityCode: string) {
   };
 }
 
+/**
+ * A sterilization that ends up done marks its cats as sterilized (only those that
+ * aren't yet). Reopening or cancelling the action never unmarks them: that is a
+ * manual decision on the cat. Returns how many cats changed.
+ */
+async function markCatsSterilized(tx: TenantTx, actionId: string): Promise<number> {
+  const updated = await tx
+    .update(cats)
+    .set({ sterilized: true })
+    .where(
+      and(
+        eq(cats.sterilized, false),
+        sql`${cats.id} in (select ${actionCats.catId} from ${actionCats}
+          join ${actions} on ${actions.id} = ${actionCats.actionId}
+          where ${actionCats.actionId} = ${actionId}
+            and ${actions.actionType} = 'sterilization' and ${actions.status} = 'done')`,
+      ),
+    )
+    .returning({ id: cats.id });
+  return updated.length;
+}
+
 const writeErrors = {
   VALIDATION: "Los gatos y participantes deben ser de tu asociación",
 };
@@ -248,6 +270,7 @@ export async function createAction(ctx: OrgContext, data: ActionInput) {
       })
       .returning({ id: actions.id });
     await replaceLinks(tx, ctx, row!.id, data);
+    await markCatsSterilized(tx, row!.id);
     return { id: row!.id };
   }).catch((error) => mapDbError(error, writeErrors));
 }
@@ -263,6 +286,7 @@ export async function updateAction(ctx: OrgContext, id: string, data: ActionInpu
       .returning({ id: actions.id });
     if (!updated.length) throw new DomainError("NOT_FOUND", "La acción no existe");
     await replaceLinks(tx, ctx, id, data);
+    await markCatsSterilized(tx, id);
     return { ok: true as const };
   }).catch((error) => mapDbError(error, writeErrors));
 }
@@ -276,7 +300,8 @@ export async function setActionStatus(ctx: OrgContext, id: string, status: Actio
       .where(and(eq(actions.id, id), eq(actions.organizationId, ctx.membership.organization.id)))
       .returning({ id: actions.id });
     if (!updated.length) throw new DomainError("NOT_FOUND", "La acción no existe");
-    return { ok: true as const };
+    const sterilizedCats = status === "done" ? await markCatsSterilized(tx, id) : 0;
+    return { ok: true as const, sterilizedCats };
   });
 }
 

@@ -48,7 +48,12 @@ export type ProposalTarget =
   | {
       type: "cat";
       id: string;
-      current: Common & { sex: CatSex; birthDate: string | null; birthDateApproximate: boolean };
+      current: Common & {
+        sex: CatSex;
+        birthDate: string | null;
+        birthDateApproximate: boolean;
+        sterilized: boolean;
+      };
     };
 
 type Draft = Record<string, unknown>;
@@ -72,6 +77,7 @@ function initialDraft(target: ProposalTarget): Draft {
           sex: target.current.sex,
           birthDate: target.current.birthDate ?? "",
           birthDateApproximate: target.current.birthDateApproximate,
+          sterilized: target.current.sterilized,
         }
       : {}),
   };
@@ -105,6 +111,7 @@ function changesFrom(target: ProposalTarget, draft: Draft): Record<string, unkno
     if (draft.birthDateApproximate !== c.birthDateApproximate) {
       out.birthDateApproximate = draft.birthDateApproximate;
     }
+    if (draft.sterilized !== c.sterilized) out.sterilized = draft.sterilized;
   }
   return out;
 }
@@ -180,10 +187,8 @@ export function ProposeChangeDialog({ target }: { target: ProposalTarget }) {
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button variant="outline" className="bg-card">
-          <GitPullRequestArrow /> Proponer cambio
-        </Button>
+      <DialogTrigger render={<Button variant="outline" className="bg-card" />}>
+        <GitPullRequestArrow /> Proponer cambio
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
@@ -205,7 +210,11 @@ export function ProposeChangeDialog({ target }: { target: ProposalTarget }) {
           {target.type === "cat" ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field id="p-sex" label="Sexo">
-                <Select value={String(draft.sex)} onValueChange={(v) => set("sex", v)}>
+                <Select
+                  items={CAT_SEX_LABELS}
+                  value={String(draft.sex)}
+                  onValueChange={(v) => v && set("sex", v)}
+                >
                   <SelectTrigger id="p-sex" className="w-full bg-card">
                     <SelectValue />
                   </SelectTrigger>
@@ -235,6 +244,16 @@ export function ProposeChangeDialog({ target }: { target: ProposalTarget }) {
                 />
                 <Label htmlFor="p-approx" className="font-normal">
                   La fecha es aproximada
+                </Label>
+              </div>
+              <div className="flex items-center gap-2 sm:col-span-2">
+                <Checkbox
+                  id="p-sterilized"
+                  checked={Boolean(draft.sterilized)}
+                  onCheckedChange={(v) => set("sterilized", v === true)}
+                />
+                <Label htmlFor="p-sterilized" className="font-normal">
+                  Castrado
                 </Label>
               </div>
             </div>

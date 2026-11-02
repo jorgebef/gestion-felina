@@ -1,7 +1,7 @@
 /** Cats: registered by association members; visible to the town hall of their municipality. */
 import { randomUUID } from "node:crypto";
 
-import { and, asc, desc, eq, ilike, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNull, or, type SQL } from "drizzle-orm";
 
 import {
   actionCats,
@@ -29,10 +29,6 @@ import {
   mapDbError,
   type OrgContext,
 } from "./context.ts";
-
-export const sterilizedSql = sql<boolean>`exists (
-  select 1 from ${actionCats} ac join ${actions} a on a.id = ac.action_id
-  where ac.cat_id = ${cats.id} and a.action_type = 'sterilization' and a.status = 'done')`;
 
 export function listCats(ctx: OrgContext, query: CatListQuery) {
   return withTenant(ctx.user.id, (tx) => {
@@ -62,7 +58,7 @@ export function listCats(ctx: OrgContext, query: CatListQuery) {
         colonyId: cats.colonyId,
         colonyName: colonies.name,
         municipalityName: municipalities.name,
-        sterilized: sterilizedSql,
+        sterilized: cats.sterilized,
         updatedAt: cats.updatedAt,
       })
       .from(cats)
@@ -97,7 +93,7 @@ export function getCat(ctx: OrgContext, id: string) {
         createdBy: cats.createdBy,
         createdAt: cats.createdAt,
         updatedAt: cats.updatedAt,
-        sterilized: sterilizedSql,
+        sterilized: cats.sterilized,
       })
       .from(cats)
       .leftJoin(colonies, eq(colonies.id, cats.colonyId))
@@ -151,6 +147,7 @@ function values(data: CatInput) {
     sex: data.sex,
     birthDate: data.birthDate,
     birthDateApproximate: data.birthDate ? data.birthDateApproximate : false,
+    sterilized: data.sterilized,
     description: data.description,
     photoKey: data.photoKey,
     latitude: data.latitude,

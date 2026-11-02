@@ -29,7 +29,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { errorMessage } from "@/lib/errors";
-import { fromDateTimeLocalValue } from "@/lib/format";
+import { colonyLabels, fromDateTimeLocalValue } from "@/lib/format";
 import { catOptionsQuery, colonyOptionsQuery, membersQuery } from "@/lib/queries";
 
 export interface ActionFormValues {
@@ -189,8 +189,10 @@ export function ActionForm({
         <div className="grid gap-5 sm:grid-cols-2">
           <Field id="actionType" label="Tipo de acción" error={errors.actionType}>
             <Select
-              value={values.actionType}
+              items={ACTION_TYPE_LABELS}
+              value={values.actionType || null}
               onValueChange={(v) => {
+                if (!v) return;
                 const type = v as ActionType;
                 setValues((current) => ({
                   ...current,
@@ -230,7 +232,11 @@ export function ActionForm({
             />
           </Field>
           <Field id="status" label="Estado" error={errors.status}>
-            <Select value={values.status} onValueChange={(v) => set("status", v as ActionStatus)}>
+            <Select
+              items={ACTION_STATUS_LABELS}
+              value={values.status}
+              onValueChange={(v) => v && set("status", v)}
+            >
               <SelectTrigger id="status" className="w-full bg-card">
                 <SelectValue />
               </SelectTrigger>
@@ -272,8 +278,9 @@ export function ActionForm({
             error={errors.colonyId}
           >
             <Select
+              items={{ [NO_COLONY]: "Ninguna (gatos sueltos)", ...colonyLabels(colonies.data) }}
               value={values.colonyId ?? NO_COLONY}
-              onValueChange={(v) => set("colonyId", v === NO_COLONY ? null : v)}
+              onValueChange={(v) => set("colonyId", !v || v === NO_COLONY ? null : v)}
             >
               <SelectTrigger id="colony" className="w-full bg-card">
                 <SelectValue />

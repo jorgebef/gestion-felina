@@ -7,7 +7,8 @@ import { z } from "zod";
 import { APP_NAME } from "@/components/brand/Logo";
 import { AuthLayout } from "@/components/app/AuthLayout";
 import { Field, FormError } from "@/components/forms/Field";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 
@@ -37,9 +38,9 @@ function ResetPasswordPage() {
   if (!token || linkError) {
     return (
       <AuthLayout title="Enlace no válido" subtitle="El enlace ha caducado o ya se ha usado.">
-        <Button asChild className="w-full">
-          <Link to="/recuperar">Solicitar un enlace nuevo</Link>
-        </Button>
+        <Link to="/recuperar" className={cn(buttonVariants(), "w-full")}>
+          Solicitar un enlace nuevo
+        </Link>
       </AuthLayout>
     );
   }

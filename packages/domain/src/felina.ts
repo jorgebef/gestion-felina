@@ -89,6 +89,7 @@ export const CAT_PROPOSABLE_FIELDS = {
   sex: "Sexo",
   birthDate: "Fecha de nacimiento",
   birthDateApproximate: "Fecha aproximada",
+  sterilized: "Castrado",
   description: "Descripción",
   address: "Dirección",
   latitude: "Latitud",

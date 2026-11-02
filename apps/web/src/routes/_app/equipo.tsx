@@ -8,7 +8,8 @@ import { MEMBER_ROLES, MEMBER_ROLE_LABELS, type MemberRole } from "@felina/domai
 import { invitationInputSchema } from "@felina/schemas/organization";
 
 import { APP_NAME } from "@/components/brand/Logo";
-import { ErrorState, LoadingState, PageHeader } from "@/components/app/states";
+import { ErrorState, PageHeader } from "@/components/app/states";
+import { RowsSkeleton } from "@/components/app/skeletons";
 import { Pill } from "@/components/felina/badges";
 import { Field } from "@/components/forms/Field";
 import {
@@ -84,7 +85,7 @@ function InviteForm() {
         />
       </Field>
       <Field id="invite-role" label="Rol">
-        <Select value={role} onValueChange={(v) => setRole(v as MemberRole)}>
+        <Select items={MEMBER_ROLE_LABELS} value={role} onValueChange={(v) => v && setRole(v)}>
           <SelectTrigger id="invite-role" className="w-full bg-card">
             <SelectValue />
           </SelectTrigger>
@@ -161,7 +162,15 @@ function Team() {
               propuestas del ayuntamiento.
             </p>
             <InviteForm />
-            {invitations.data?.length ? (
+            {invitations.isFetching ? (
+              <RowsSkeleton
+                framed={false}
+                trailing
+                rows={2}
+                label="Cargando invitaciones…"
+                className="mt-6 rounded-lg border"
+              />
+            ) : invitations.data?.length ? (
               <>
                 <h3 className="mt-6 text-sm font-medium">Invitaciones pendientes</h3>
                 <ul className="mt-2 divide-y rounded-lg border text-sm">
@@ -191,8 +200,8 @@ function Team() {
 
         <section className="surface">
           <h2 className="border-b px-5 py-3 font-semibold">Miembros</h2>
-          {members.isPending ? (
-            <LoadingState />
+          {members.isPending || members.isFetching ? (
+            <RowsSkeleton framed={false} trailing rows={3} label="Cargando miembros…" />
           ) : members.isError ? (
             <ErrorState error={members.error} />
           ) : (
@@ -215,9 +224,10 @@ function Team() {
                     <div className="flex items-center gap-2">
                       {isAdmin ? (
                         <Select
+                          items={MEMBER_ROLE_LABELS}
                           value={m.role}
                           onValueChange={(role) =>
-                            setRole.mutate({ userId: m.userId, role: role as MemberRole })
+                            role && setRole.mutate({ userId: m.userId, role })
                           }
                         >
                           <SelectTrigger className="w-44 bg-card" aria-label={`Rol de ${m.email}`}>
@@ -236,14 +246,18 @@ function Team() {
                       )}
                       {isAdmin || me ? (
                         <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              aria-label={me ? "Salir de la organización" : `Eliminar a ${m.email}`}
-                            >
-                              {me ? <LogOut /> : <Trash2 />}
-                            </Button>
+                          <AlertDialogTrigger
+                            render={
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                aria-label={
+                                  me ? "Salir de la organización" : `Eliminar a ${m.email}`
+                                }
+                              />
+                            }
+                          >
+                            {me ? <LogOut /> : <Trash2 />}
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>

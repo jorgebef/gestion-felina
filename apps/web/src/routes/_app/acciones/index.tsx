@@ -11,10 +11,11 @@ import {
 } from "@felina/domain/felina";
 
 import { APP_NAME } from "@/components/brand/Logo";
-import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/app/states";
+import { EmptyState, ErrorState, PageHeader } from "@/components/app/states";
+import { RowsSkeleton } from "@/components/app/skeletons";
 import { ActionRow } from "@/components/felina/ActionRow";
 import { Pager } from "@/components/felina/Pager";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -61,18 +62,16 @@ function Actions() {
         title="Acciones"
         description="Castraciones, visitas al veterinario, capturas, sueltas y alimentación."
         actions={
-          <Button asChild>
-            <Link to="/acciones/nueva">
-              <Plus /> Nueva acción
-            </Link>
-          </Button>
+          <Link to="/acciones/nueva" className={buttonVariants()}>
+            <Plus /> Nueva acción
+          </Link>
         }
       />
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Tabs
           value={when}
           onValueChange={(v) =>
-            void navigate({ search: (s) => ({ ...s, when: v as typeof when, page: undefined }) })
+            navigate({ search: (s) => ({ ...s, when: v as typeof when, page: undefined }) })
           }
         >
           <TabsList>
@@ -83,6 +82,7 @@ function Actions() {
         </Tabs>
         <div className="flex gap-2">
           <Select
+            items={{ all: "Todos los tipos", ...ACTION_TYPE_LABELS }}
             value={search.type ?? "all"}
             onValueChange={(v) =>
               void navigate({
@@ -107,6 +107,7 @@ function Actions() {
             </SelectContent>
           </Select>
           <Select
+            items={{ all: "Todos los estados", ...ACTION_STATUS_LABELS }}
             value={search.status ?? "all"}
             onValueChange={(v) =>
               void navigate({
@@ -132,8 +133,8 @@ function Actions() {
           </Select>
         </div>
       </div>
-      {query.isPending ? (
-        <LoadingState />
+      {query.isPending || query.isFetching ? (
+        <RowsSkeleton badges label="Cargando acciones…" />
       ) : query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : query.data.items.length ? (
@@ -155,9 +156,9 @@ function Actions() {
           icon={ClipboardList}
           title={when === "upcoming" ? "No hay acciones programadas" : "No hay acciones"}
           action={
-            <Button asChild>
-              <Link to="/acciones/nueva">Nueva acción</Link>
-            </Button>
+            <Link to="/acciones/nueva" className={buttonVariants()}>
+              Nueva acción
+            </Link>
           }
         />
       )}

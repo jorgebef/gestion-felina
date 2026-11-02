@@ -113,3 +113,10 @@ export function formatAge(birthDate: string | null, approximate = false): string
 export function pluralize(n: number, one: string, many: string): string {
   return `${formatInteger(n)} ${n === 1 ? one : many}`;
 }
+
+/** `{ id: name }` map of colonies, the `items` that let a select show the chosen name. */
+export function colonyLabels(
+  colonies: readonly { id: string; name: string }[] | undefined,
+): Record<string, string> {
+  return Object.fromEntries((colonies ?? []).map((c) => [c.id, c.name]));
+}

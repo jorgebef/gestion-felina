@@ -2,7 +2,7 @@ import { Link, useRouter, type ErrorComponentProps } from "@tanstack/react-route
 import { AlertTriangle, Loader2, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 
@@ -99,9 +99,9 @@ export function DefaultCatchBoundary({ error, reset }: ErrorComponentProps) {
           icon={AlertTriangle}
           title="Tu sesión ha caducado"
           action={
-            <Button asChild>
-              <Link to="/login">Iniciar sesión</Link>
-            </Button>
+            <Link to="/login" className={buttonVariants()}>
+              Iniciar sesión
+            </Link>
           }
         />
       </div>

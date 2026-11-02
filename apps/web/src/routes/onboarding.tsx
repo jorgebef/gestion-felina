@@ -5,7 +5,7 @@ import { Clock, LogOut, MailOpen, ShieldAlert, ShieldCheck, UserRound } from "lu
 import { APP_NAME, Logo } from "@/components/brand/Logo";
 import { OrganizationStatusBadge } from "@/components/felina/badges";
 import { emptyOrganization, OrganizationForm } from "@/components/forms/OrganizationForm";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import { viewerQuery } from "@/lib/queries";
@@ -45,11 +45,9 @@ function Onboarding() {
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <Logo />
           <div className="flex items-center gap-1">
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/perfil">
-                <UserRound /> Mi perfil
-              </Link>
-            </Button>
+            <Link to="/perfil" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              <UserRound /> Mi perfil
+            </Link>
             <Button variant="ghost" size="sm" onClick={() => void signOut()}>
               <LogOut /> Cerrar sesión
             </Button>
@@ -62,9 +60,9 @@ function Onboarding() {
             <span className="flex items-center gap-2 text-brand-strong">
               <ShieldCheck className="size-4" /> Eres superadministrador/a de la plataforma.
             </span>
-            <Button asChild size="sm">
-              <Link to="/admin">Ir a la administración</Link>
-            </Button>
+            <Link to="/admin" className={buttonVariants({ size: "sm" })}>
+              Ir a la administración
+            </Link>
           </div>
         ) : null}
 

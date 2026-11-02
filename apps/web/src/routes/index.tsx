@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 
 import { APP_NAME, Logo } from "@/components/brand/Logo";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [{ title: `${APP_NAME} · Gestión de colonias felinas` }] }),
@@ -68,19 +69,17 @@ function Landing() {
           <Logo />
           <nav className="flex items-center gap-2">
             {viewer ? (
-              <Button asChild>
-                <Link to="/panel">Ir a mi panel</Link>
-              </Button>
+              <Link to="/panel" className={buttonVariants()}>
+                Ir a mi panel
+              </Link>
             ) : (
               <>
-                <Button asChild variant="ghost">
-                  <Link to="/login">Iniciar sesión</Link>
-                </Button>
-                <Button asChild>
-                  <Link to="/login" search={{ mode: "signup" }}>
-                    Registrar asociación
-                  </Link>
-                </Button>
+                <Link to="/login" className={buttonVariants({ variant: "ghost" })}>
+                  Iniciar sesión
+                </Link>
+                <Link to="/login" search={{ mode: "signup" }} className={buttonVariants()}>
+                  Registrar asociación
+                </Link>
               </>
             )}
           </nav>
@@ -99,14 +98,19 @@ function Landing() {
             de empezar.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link to="/login" search={{ mode: "signup" }}>
-                Registrar mi asociación
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="bg-card">
-              <Link to="/login">Ya tengo cuenta</Link>
-            </Button>
+            <Link
+              to="/login"
+              search={{ mode: "signup" }}
+              className={buttonVariants({ size: "lg" })}
+            >
+              Registrar mi asociación
+            </Link>
+            <Link
+              to="/login"
+              className={cn(buttonVariants({ size: "lg", variant: "outline" }), "bg-card")}
+            >
+              Ya tengo cuenta
+            </Link>
           </div>
         </section>
 

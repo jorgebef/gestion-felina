@@ -12,6 +12,7 @@ import { APP_NAME } from "@/components/brand/Logo";
 import { AppShell } from "@/components/app/AppShell";
 import { SettingsSection } from "@/components/app/SettingsSection";
 import { ErrorState, Facts, LoadingState, PageHeader } from "@/components/app/states";
+import { RowsSkeleton } from "@/components/app/skeletons";
 import { OrganizationStatusBadge, Pill } from "@/components/felina/badges";
 import { Field, FormError } from "@/components/forms/Field";
 import {
@@ -25,7 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -440,7 +441,18 @@ function SessionsSection() {
     onError: (e) => toast.error(e.message),
   });
 
-  if (sessions.isPending) return <LoadingState />;
+  if (sessions.isPending || sessions.isFetching) {
+    return (
+      <RowsSkeleton
+        framed={false}
+        icon
+        trailing
+        rows={2}
+        className="rounded-lg border bg-card"
+        label="Cargando sesiones…"
+      />
+    );
+  }
   if (sessions.isError) {
     return <ErrorState error={sessions.error} onRetry={() => void sessions.refetch()} />;
   }
@@ -521,9 +533,9 @@ function MembershipSection({ viewer, joinedAt }: { viewer: Viewer; joinedAt: str
             : "Todavía no perteneces a ninguna organización. Registra tu asociación o pide una invitación."}
         </p>
         {!viewer.isPlatformAdmin ? (
-          <Button asChild variant="outline">
-            <Link to="/onboarding">Registrar asociación</Link>
-          </Button>
+          <Link to="/onboarding" className={buttonVariants({ variant: "outline" })}>
+            Registrar asociación
+          </Link>
         ) : null}
       </div>
     );
@@ -543,21 +555,21 @@ function MembershipSection({ viewer, joinedAt }: { viewer: Viewer; joinedAt: str
       />
       <div className="flex flex-wrap gap-2">
         {approved ? (
-          <Button asChild variant="outline">
-            <Link to="/ajustes">Ajustes de la organización</Link>
-          </Button>
+          <Link to="/ajustes" className={buttonVariants({ variant: "outline" })}>
+            Ajustes de la organización
+          </Link>
         ) : (
-          <Button asChild variant="outline">
-            <Link to="/onboarding">Ver estado de la solicitud</Link>
-          </Button>
+          <Link to="/onboarding" className={buttonVariants({ variant: "outline" })}>
+            Ver estado de la solicitud
+          </Link>
         )}
         {approved ? (
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" className="text-negative hover:text-negative">
-                <LogOut />
-                Salir de la organización
-              </Button>
+            <AlertDialogTrigger
+              render={<Button variant="ghost" className="text-negative hover:text-negative" />}
+            >
+              <LogOut />
+              Salir de la organización
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>

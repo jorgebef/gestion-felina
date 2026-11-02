@@ -2,7 +2,6 @@
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 
 import {
-  actionCats,
   actions,
   cats,
   changeProposals,
@@ -68,11 +67,7 @@ export function getDashboard(ctx: OrgContext) {
       tx
         .select({
           total: count(),
-          sterilized: sql<number>`count(*) filter (where exists (
-            select 1 from ${actionCats} ac join ${actions} a on a.id = ac.action_id
-            where ac.cat_id = ${cats.id} and a.action_type = 'sterilization' and a.status = 'done'))`.mapWith(
-            Number,
-          ),
+          sterilized: sql<number>`count(*) filter (where ${cats.sterilized})`.mapWith(Number),
           withoutColony: sql<number>`count(*) filter (where ${cats.colonyId} is null)`.mapWith(
             Number,
           ),

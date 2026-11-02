@@ -11,6 +11,7 @@
     "generate-routes": "tsr generate"
   },
   "dependencies": {
+    "@base-ui/react": "^1.9.0",
     "@felina/api-client": "workspace:*",
     "@felina/domain": "workspace:*",
     "@felina/schemas": "workspace:*",
@@ -32,7 +33,6 @@
     "lucide-react": "^1.61.0",
     "next-themes": "^0.4.6",
     "nitro": "3.0.260903-beta",
-    "radix-ui": "^1.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "sonner": "^2.0.8",

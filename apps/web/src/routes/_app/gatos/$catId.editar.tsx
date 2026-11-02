@@ -37,6 +37,7 @@ function EditCat() {
             sex: cat.sex,
             birthDate: cat.birthDate ?? "",
             birthDateApproximate: cat.birthDateApproximate,
+            sterilized: cat.sterilized,
             description: cat.description ?? "",
             colonyId: cat.colonyId,
             location: {
@@ -52,6 +53,7 @@ function EditCat() {
             await api().cats.update(catId, values);
             await queryClient.invalidateQueries({ queryKey: ["cats"] });
             await queryClient.invalidateQueries({ queryKey: ["colonies"] });
+            await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
             toast.success("Gato actualizado");
             await router.navigate({ to: "/gatos/$catId", params: { catId } });
           }}
