@@ -73,7 +73,7 @@ export function EntityAvatar({
 export function EntityLabel({
   entity,
   name,
-  size = "xs",
+  size = "sm",
   className,
 }: {
   entity: AvatarEntity;
@@ -84,7 +84,7 @@ export function EntityLabel({
   return (
     <span className={cn("inline-flex min-w-0 items-center gap-1.5 align-middle", className)}>
       <EntityAvatar entity={entity} name={name} size={size} />
-      <span className="truncate">{name}</span>
+      <span className="text-balance">{name}</span>
     </span>
   );
 }

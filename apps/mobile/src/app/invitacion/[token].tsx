@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { MailOpen } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 
 import { MEMBER_ROLE_LABELS, ORGANIZATION_KIND_LABELS } from "@felina/domain/felina";
@@ -29,12 +30,23 @@ export default function Invitation() {
   const viewer = useViewer();
   const queryClient = useQueryClient();
   const query = useQuery(invitationQuery(token));
+  const [accepted, setAccepted] = useState(false);
   const accept = useMutation({
     mutationFn: () => api().invitations.accept(token),
     onSuccess: async () => {
-      router.replace(homeHref(await refreshViewer(queryClient)));
+      await refreshViewer(queryClient);
+      setAccepted(true);
     },
   });
+  // Go home only once the root layout's `Stack.Protected` guards have switched to the new
+  // membership and finished their own updates: this screen has re-rendered with it (effect)
+  // and those updates have run (next frame). Navigating right after refreshing the viewer
+  // races with the guards and loops on iOS ("Maximum update depth exceeded").
+  useEffect(() => {
+    if (!accepted || !viewer?.membership) return;
+    const frame = requestAnimationFrame(() => router.replace(homeHref(viewer)));
+    return () => cancelAnimationFrame(frame);
+  }, [accepted, viewer]);
 
   if (query.isPending) return <LoadingState />;
   if (query.isError) {
